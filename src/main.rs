@@ -12,8 +12,8 @@ mod util;
 use cli::{Cli, Commands};
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    color_eyre::install()?;
+async fn main() -> anyhow::Result<()> {
+    color_eyre::install().unwrap();
 
     tracing_subscriber::fmt()
         .with_env_filter(
