@@ -5,8 +5,7 @@ use std::path::{Path, PathBuf};
 use tracing::warn;
 
 use crate::extract::extract_archive;
-use crate::github::{parse_package, Asset, GitHubClient, Release};
-use crate::platform::{current_platform, find_best_asset};
+use crate::github::{parse_package, Asset, GithubClient, Platform, Release, find_matching_asset};
 use crate::registry::{bin_dir, InstalledPackage, Registry};
 
 pub async fn handle_install(package: &str, force: bool) -> Result<()> {
@@ -20,19 +19,24 @@ pub async fn handle_install(package: &str, force: bool) -> Result<()> {
         return Ok(());
     }
 
-    let client = GitHubClient::new(None)?;
+    let client = GithubClient::new(None)?;
     let release = match &version {
-        Some(v) => client.get_release_by_tag(&owner, &repo, v).await?,
-        None => client.get_latest_release(&owner, &repo).await?,
+        Some(v) => client.get_release(&owner, &repo, v).await?,
+        None => client.get_release(&owner, &repo, "latest").await?,
     };
 
     let asset = select_best_asset(&release)?;
     println!("Release: {}", release.tag_name);
     println!("Asset:   {}", asset.name);
 
-    let pb = make_progress_bar(asset.size);
-    let bytes = client.download_asset(asset, |d, _| pb.set_position(d)).await?;
-    pb.finish_with_message("Downloaded");
+    // Download to a temporary location
+    let temp_dir = std::env::temp_dir().join(format!("gitclaw-{}-{}", owner, repo));
+    std::fs::create_dir_all(&temp_dir)?;
+    let download_path = temp_dir.join(&asset.name);
+    client.download_asset(asset, &download_path).await?;
+    
+    // Read the downloaded file
+    let bytes = std::fs::read(&download_path)?;
 
     let install_dir = dirs::home_dir()
         .ok_or_else(|| anyhow!("No home directory"))?
@@ -81,8 +85,8 @@ async fn update_one(package: &str) -> Result<()> {
     let installed = reg.packages.get(&key).unwrap();
     println!("Checking {} (current: {})...", key, installed.version);
 
-    let client = GitHubClient::new(None)?;
-    let latest = client.get_latest_release(&owner, &repo).await?;
+    let client = GithubClient::new(None)?;
+    let latest = client.get_release(&owner, &repo, "latest").await?;
 
     if latest.tag_name == installed.version {
         println!("{} is up to date ({})", key, installed.version);
@@ -122,15 +126,14 @@ fn select_best_asset(release: &Release) -> Result<&Asset> {
     if release.assets.is_empty() {
         bail!("Release {} has no assets", release.tag_name);
     }
-    let (os, arch) = current_platform()?;
-    let names: Vec<&str> = release.assets.iter().map(|a| a.name.as_str()).collect();
-    match find_best_asset(&names, os, arch) {
-        Some(name) => Ok(release.assets.iter().find(|a| a.name == name).unwrap()),
-        None if release.assets.len() == 1 => {
+    let platform = Platform::current()?;
+    match find_matching_asset(release, platform) {
+        Ok(asset) => Ok(asset),
+        Err(_) if release.assets.len() == 1 => {
             warn!("No platform match; using sole asset");
             Ok(&release.assets[0])
         }
-        None => bail!("No suitable asset for {} {} in: {:?}", os, arch, names),
+        Err(e) => bail!("No suitable asset for {}: {:?}", platform, e),
     }
 }
 
