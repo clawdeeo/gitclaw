@@ -13,7 +13,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Download preferences
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DownloadConfig {
     /// Show progress bars during download
     #[serde(default = "default_true")]
@@ -28,8 +28,18 @@ pub struct DownloadConfig {
     pub verify_checksums: bool,
 }
 
+impl Default for DownloadConfig {
+    fn default() -> Self {
+        Self {
+            show_progress: true,
+            prefer_strip: true,
+            verify_checksums: true,
+        }
+    }
+}
+
 /// Output preferences
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct OutputConfig {
     /// Color output: "auto", "always", "never"
     #[serde(default = "default_color")]
@@ -42,6 +52,16 @@ pub struct OutputConfig {
     /// Verbose output
     #[serde(default)]
     pub verbose: bool,
+}
+
+impl Default for OutputConfig {
+    fn default() -> Self {
+        Self {
+            color: "auto".to_string(),
+            quiet: false,
+            verbose: false,
+        }
+    }
 }
 
 /// Gitclaw configuration
@@ -108,7 +128,7 @@ impl Config {
     }
     
     /// Load from $GITCLAW_CONFIG environment variable
-    fn load_from_env() -> Result<Option<Self>> {
+    pub fn load_from_env() -> Result<Option<Self>> {
         if let Ok(path) = env::var("GITCLAW_CONFIG") {
             let content = fs::read_to_string(&path)
                 .with_context(|| format!("Failed to read config from GITCLAW_CONFIG: {}", path))?;
@@ -120,7 +140,7 @@ impl Config {
     }
     
     /// Load from ./.gitclaw.toml (project-local)
-    fn load_from_local() -> Result<Option<Self>> {
+    pub fn load_from_local() -> Result<Option<Self>> {
         let path = PathBuf::from(".gitclaw.toml");
         if path.exists() {
             let content = fs::read_to_string(&path)
@@ -133,7 +153,7 @@ impl Config {
     }
     
     /// Load from XDG config location (~/.config/gitclaw/config.toml)
-    fn load_from_xdg() -> Result<Option<Self>> {
+    pub fn load_from_xdg() -> Result<Option<Self>> {
         if let Some(config_dir) = dirs::config_dir() {
             let path = config_dir.join("gitclaw").join("config.toml");
             if path.exists() {
@@ -148,7 +168,7 @@ impl Config {
     }
     
     /// Load from legacy location (~/.gitclaw.toml)
-    fn load_from_legacy() -> Result<Option<Self>> {
+    pub fn load_from_legacy() -> Result<Option<Self>> {
         if let Some(home) = dirs::home_dir() {
             let path = home.join(".gitclaw.toml");
             if path.exists() {
@@ -163,7 +183,7 @@ impl Config {
     }
     
     /// Merge another config into this one, with other taking precedence
-    fn merge(&mut self, other: Config) {
+    pub fn merge(&mut self, other: Config) {
         if let Some(token) = other.github_token {
             self.github_token = Some(token);
         }
