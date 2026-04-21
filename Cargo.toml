@@ -2,41 +2,31 @@
 name = "gitclaw"
 version = "0.1.0"
 edition = "2021"
-description = "Install software from GitHub releases"
-license = "MIT"
-
-[[bin]]
-name = "gitclaw"
-path = "src/main.rs"
-
-[lib]
-name = "gitclaw"
-path = "src/lib.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive", "env"] }
-tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls", "stream"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "0.8"
-thiserror = "1"
-anyhow = "1"
-color-eyre = "0.6"
-indicatif = "0.17"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+toml = "0.7"
 tar = "0.4"
 flate2 = "1"
-zip = { version = "2", default-features = false, features = ["deflate"] }
-bzip2 = "0.5"
+bzip2 = "0.4"
 xz2 = "0.1"
+zip = "0.6"
+anyhow = "1"
+thiserror = "1"
+color-eyre = "0.6"
+indicatif = "0.17"
+dirs = "5"
+tempfile = "3"
+chrono = "0.4"
 walkdir = "2"
-chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
-dirs = "6"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 tempfile = "3"
 assert_cmd = "2"
-predicates = "3"
