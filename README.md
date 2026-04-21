@@ -42,6 +42,9 @@ gitclaw install BurntSushi/ripgrep@13.0.0
 
 # Force reinstall
 gitclaw install BurntSushi/ripgrep --force
+
+# Dry run (preview without installing)
+gitclaw install BurntSushi/ripgrep --dry-run
 ```
 
 ### List installed packages
@@ -65,6 +68,19 @@ gitclaw update
 
 ```bash
 gitclaw uninstall BurntSushi/ripgrep
+```
+
+### Generate shell completions
+
+```bash
+# Bash
+gitclaw completions bash > /usr/share/bash-completion/completions/gitclaw
+
+# Zsh
+gitclaw completions zsh > /usr/local/share/zsh/site-functions/_gitclaw
+
+# Fish
+gitclaw completions fish > ~/.config/fish/completions/gitclaw.fish
 ```
 
 ### Search for releases

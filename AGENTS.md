@@ -292,4 +292,38 @@ let file = fs::read(&path)?;  // Less helpful
 
 ---
 
+## v0.2.0 Lessons Learned
+
+### Local Verification Before Push
+**Always run the full local verification before pushing:**
+```bash
+cargo fmt -- --check
+cargo clippy -- -D warnings
+cargo test
+```
+
+This prevents CI failures from trivial formatting/clippy issues.
+
+### Config Wiring Pattern
+When adding config options, remember to:
+1. Add field to `Config` struct with serde attributes
+2. Add default value function
+3. Wire through to usage site (don't leave hardcoded)
+4. Update tests that touch affected functions
+
+### Dry Run Implementation
+Dry run should:
+- Calculate all paths and values without side effects
+- Print what *would* happen
+- Return early before any network/fs operations
+- Be CI-friendly (exit 0 on success, not failure)
+
+### Shell Completions with clap_complete
+- Add `clap_complete` dependency
+- Use `clap::Shell` enum for shell argument
+- Generate in main.rs match arm with `generate()` function
+- No async needed for completions command
+
+---
+
 *Last updated: 2026-04-21*
