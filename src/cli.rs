@@ -19,6 +19,8 @@ pub enum Commands {
         force: bool,
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        verify: bool,
     },
     List {
         #[arg(short, long)]

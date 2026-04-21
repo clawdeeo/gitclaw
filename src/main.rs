@@ -1,6 +1,7 @@
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
 
+mod checksum;
 mod cli;
 mod config;
 mod github;
@@ -65,7 +66,8 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             package,
             force,
             dry_run,
-        } => install::handle_install(&package, force, dry_run, &config).await?,
+            verify,
+        } => install::handle_install(&package, force, dry_run, verify, &config).await?,
         Commands::List { verbose } => registry::list_installed(verbose)?,
         Commands::Update { package } => install::handle_update(package.as_deref(), &config).await?,
         Commands::Uninstall { package } => registry::uninstall(&package, &config.install_dir)?,

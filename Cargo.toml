@@ -32,7 +32,8 @@ indexmap = "=2.0.2"
 url = "=2.4.1"
 base64 = "=0.21.7"
 base64ct = "=1.6.0"
-atty = "=0.2.14"
+sha2 = "=0.10.8"
+md5 = "=0.7.0"
 
-[dev-dependencies]
+atty = "=0.2.14"
 assert_cmd = "2.0.12"
