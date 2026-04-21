@@ -27,11 +27,11 @@ fn create_test_zip(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::PathBuf
     let archive_path = dir.path().join("test.zip");
     let file = fs::File::create(&archive_path).unwrap();
     let mut writer = zip::write::ZipWriter::new(file);
-    let options = zip::write::SimpleFileOptions::default()
+    let options = zip::write::FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored);
 
     for (name, content) in files {
-        writer.start_file(name, options).unwrap();
+        writer.start_file(*name, options).unwrap();
         writer.write_all(content).unwrap();
     }
 
