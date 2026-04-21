@@ -163,4 +163,6 @@ cargo run -- install BurntSushi/ripgrep
 
 ## License
 
-MIT
+MIT License - Copyright (c) 2026 Francesco Sardone (Airscript)
+
+See [LICENSE](LICENSE) for details.
