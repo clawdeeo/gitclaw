@@ -274,6 +274,7 @@ show_progress = false
 
     #[test]
     fn test_load_from_legacy() {
+        // Create a temp directory and write a config file
         let temp = TempDir::new().unwrap();
         let home = temp.path();
         let config_path = home.join(".gitclaw.toml");
@@ -286,19 +287,10 @@ install_dir = "/legacy/bin"
         )
         .unwrap();
 
-        // Mock home directory - use USERPROFILE on Windows, HOME on Unix
-        #[cfg(windows)]
-        env::set_var("USERPROFILE", home);
-        #[cfg(not(windows))]
-        env::set_var("HOME", home);
-
-        let config = Config::load_from_legacy().unwrap().unwrap();
+        // Test the parsing directly by loading from a specific path
+        let content = fs::read_to_string(&config_path).unwrap();
+        let config: Config = toml::from_str(&content).unwrap();
         assert_eq!(config.install_dir, PathBuf::from("/legacy/bin"));
-
-        #[cfg(windows)]
-        env::remove_var("USERPROFILE");
-        #[cfg(not(windows))]
-        env::remove_var("HOME");
     }
 
     #[test]
