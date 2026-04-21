@@ -7,7 +7,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  fmt:
+  Format:
     name: Format
     runs-on: ubuntu-latest
     container: rust:1.75-slim
@@ -16,7 +16,7 @@ jobs:
       - run: rustup component add rustfmt
       - run: cargo fmt --check
 
-  clippy:
+  Clippy:
     name: Clippy
     runs-on: ubuntu-latest
     container: rust:1.75-slim

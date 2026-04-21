@@ -7,8 +7,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test-linux:
-    name: Test Linux
+  Linux:
+    name: Linux
     runs-on: ubuntu-latest
     container: rust:1.75-slim
     steps:
@@ -16,16 +16,16 @@ jobs:
       - run: apt-get update && apt-get install -y pkg-config libssl-dev
       - run: cargo test
 
-  test-macos:
-    name: Test macOS
+  macOS:
+    name: macOS
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.75
       - run: cargo test
 
-  test-windows:
-    name: Test Windows
+  Windows:
+    name: Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

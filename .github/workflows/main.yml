@@ -7,13 +7,13 @@ on:
     branches: [main, master]
 
 jobs:
-  verify:
+  Verify:
     uses: ./.github/workflows/verify.yml
 
-  test:
-    needs: verify
+  Test:
+    needs: Verify
     uses: ./.github/workflows/test.yml
 
-  build:
-    needs: test
+  Build:
+    needs: Test
     uses: ./.github/workflows/build.yml

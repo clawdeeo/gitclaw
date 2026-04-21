@@ -7,8 +7,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-linux:
-    name: Build Linux
+  Linux:
+    name: Linux
     runs-on: ubuntu-latest
     container: rust:1.75-slim
     steps:
@@ -20,8 +20,8 @@ jobs:
           name: gitclaw-linux
           path: target/release/gitclaw
 
-  build-macos:
-    name: Build macOS
+  macOS:
+    name: macOS
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +32,8 @@ jobs:
           name: gitclaw-macos
           path: target/release/gitclaw
 
-  build-windows:
-    name: Build Windows
+  Windows:
+    name: Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
