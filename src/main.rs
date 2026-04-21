@@ -7,6 +7,7 @@ mod github;
 mod install;
 mod platform;
 mod registry;
+mod self_update;
 mod util;
 
 // Extract module as a directory
@@ -75,6 +76,13 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             let mut cmd = Cli::command();
             let name = cmd.get_name().to_string();
             generate(shell, &mut cmd, name, &mut std::io::stdout());
+        }
+        Commands::SelfUpdate { check } => {
+            if check {
+                self_update::check_for_update(&config).await?
+            } else {
+                self_update::perform_update(&config).await?
+            }
         }
     }
 
