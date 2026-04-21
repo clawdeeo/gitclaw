@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::generate;
 
 mod cli;
 mod config;
@@ -69,6 +70,11 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         Commands::Uninstall { package } => registry::uninstall(&package, &config.install_dir)?,
         Commands::Search { package, limit } => {
             github::search_releases(&package, limit, &config).await?
+        }
+        Commands::Completions { shell } => {
+            let mut cmd = Cli::command();
+            let name = cmd.get_name().to_string();
+            generate(shell, &mut cmd, name, &mut std::io::stdout());
         }
     }
 

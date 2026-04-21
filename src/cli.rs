@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use clap_complete::Shell;
 
 #[derive(Parser)]
 #[command(name = "gitclaw", about = "Install software from GitHub releases")]
@@ -33,5 +34,9 @@ pub enum Commands {
         package: String,
         #[arg(short, long, default_value = "10")]
         limit: usize,
+    },
+    Completions {
+        #[arg(value_enum)]
+        shell: Shell,
     },
 }

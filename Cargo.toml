@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "=4.4.18", features = ["derive", "env"] }
+clap_complete = "=4.4.5"
 tokio = { version = "=1.32", features = ["rt-multi-thread", "macros"] }
 reqwest = { version = "=0.11.22", default-features = false, features = ["json", "rustls-tls", "stream"] }
 serde = { version = "=1.0.188", features = ["derive"] }
