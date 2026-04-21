@@ -14,7 +14,8 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     Install {
-        package: String,
+        #[arg(num_args = 1..)]
+        packages: Vec<String>,
         #[arg(short, long)]
         force: bool,
         #[arg(long)]
