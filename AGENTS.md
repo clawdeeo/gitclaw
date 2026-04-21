@@ -284,6 +284,41 @@ let file = fs::read(&path)?;  // Less helpful
 
 ---
 
+### Code Formatting Rules
+
+**Spacing for multi-line code blocks:**
+- Use blank line *after* multi-line code blocks (if/while/match/fn bodies spanning multiple lines)
+- Single-line statements don't need trailing blank line
+- Opening brace on same line for functions, structs, enums
+
+**Example:**
+```rust
+// Good: no blank line after single-line if
+if condition { do_something(); }
+let x = 1;
+
+// Good: blank line after multi-line if
+if condition {
+    do_first();
+    do_second();
+}
+
+let y = 2;
+
+// Good: no blank line within single expressions
+let result = match value {
+    Some(v) => process(v),
+    None => default(),
+};
+```
+
+**Avoid:**
+- Excessive blank lines
+- Comments that restate the obvious
+- "What" comments instead of "why" comments
+
+---
+
 ## Resources
 
 - [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
