@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  test:
+    needs: verify
+    uses: ./.github/workflows/test.yml
+
+  build:
+    needs: test
+    uses: ./.github/workflows/build.yml
