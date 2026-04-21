@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(clippy::enum_variant_names)]
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -108,18 +111,23 @@ pub fn score_asset(name: &str, os: OS, arch: Arch) -> i32 {
 
     for ext in os.extensions() {
         if lower.ends_with(ext) {
-            score += if matches!(os, OS::Linux | OS::MacOS) && ext.starts_with(".tar") {
-                5
-            } else if matches!(os, OS::Windows) && *ext == ".zip" {
+            let bonus = if (matches!(os, OS::Linux | OS::MacOS) && ext.starts_with(".tar"))
+                || (matches!(os, OS::Windows) && *ext == ".zip")
+            {
                 5
             } else {
                 2
             };
+            score += bonus;
             break;
         }
     }
 
-    if lower.contains("checksum") || lower.contains("sha256") || lower.contains(".asc") || lower.contains(".sig") {
+    if lower.contains("checksum")
+        || lower.contains("sha256")
+        || lower.contains(".asc")
+        || lower.contains(".sig")
+    {
         score -= 50;
     }
 
@@ -161,7 +169,13 @@ mod tests {
             "checksums.txt",
         ];
         let refs: Vec<&str> = assets.iter().map(|s| *s).collect();
-        assert_eq!(find_best_asset(&refs, OS::Linux, Arch::X86_64), Some("app-linux-x86_64.tar.gz"));
-        assert_eq!(find_best_asset(&refs, OS::MacOS, Arch::Aarch64), Some("app-darwin-arm64.tar.gz"));
+        assert_eq!(
+            find_best_asset(&refs, OS::Linux, Arch::X86_64),
+            Some("app-linux-x86_64.tar.gz")
+        );
+        assert_eq!(
+            find_best_asset(&refs, OS::MacOS, Arch::Aarch64),
+            Some("app-darwin-arm64.tar.gz")
+        );
     }
 }

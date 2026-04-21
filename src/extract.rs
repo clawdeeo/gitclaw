@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -30,9 +32,7 @@ pub fn detect_archive_type(file_path: &Path) -> Result<ArchiveType> {
     let filename = file_path
         .file_name()
         .and_then(|n| n.to_str())
-        .ok_or_else(|| {
-            ExtractionError::UnknownArchiveType(file_path.display().to_string())
-        })?;
+        .ok_or_else(|| ExtractionError::UnknownArchiveType(file_path.display().to_string()))?;
 
     let lower = filename.to_lowercase();
 
@@ -47,10 +47,7 @@ pub fn detect_archive_type(file_path: &Path) -> Result<ArchiveType> {
     } else if lower.ends_with(".tar") {
         // Plain tar - treat as TarGz for extraction purposes
         Ok(ArchiveType::TarGz)
-    } else if lower.ends_with(".exe")
-        || lower.ends_with(".bin")
-        || !lower.contains('.')
-    {
+    } else if lower.ends_with(".exe") || lower.ends_with(".bin") || !lower.contains('.') {
         Ok(ArchiveType::PlainBinary)
     } else {
         Err(ExtractionError::UnknownArchiveType(filename.to_string()))
@@ -128,9 +125,7 @@ pub fn extract_plain_binary(archive_path: &Path, dest_dir: &Path) -> Result<()> 
 
     let filename = archive_path
         .file_name()
-        .ok_or_else(|| {
-            ExtractionError::UnknownArchiveType(archive_path.display().to_string())
-        })?;
+        .ok_or_else(|| ExtractionError::UnknownArchiveType(archive_path.display().to_string()))?;
 
     let dest_file = dest_dir.join(filename);
     fs::copy(archive_path, dest_file)?;
