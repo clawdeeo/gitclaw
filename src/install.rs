@@ -3,11 +3,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
+use crate::config::Config;
 use crate::extract::extract_archive;
 use crate::github::{find_matching_asset, parse_package, Asset, GithubClient, Platform, Release};
 use crate::registry::{bin_dir, InstalledPackage, Registry};
 
-pub async fn handle_install(package: &str, force: bool) -> Result<()> {
+pub async fn handle_install(package: &str, force: bool, config: &Config) -> Result<()> {
     let (owner, repo, version) = parse_package(package)?;
     let key = format!("{}/{}", owner, repo);
 
@@ -21,7 +22,7 @@ pub async fn handle_install(package: &str, force: bool) -> Result<()> {
         return Ok(());
     }
 
-    let client = GithubClient::new(None)?;
+    let client = GithubClient::new(config.github_token.clone())?;
     let release = match &version {
         Some(v) => client.get_release(&owner, &repo, v).await?,
         None => client.get_release(&owner, &repo, "latest").await?,
@@ -67,14 +68,14 @@ pub async fn handle_install(package: &str, force: bool) -> Result<()> {
     Ok(())
 }
 
-pub async fn handle_update(package: Option<&str>) -> Result<()> {
+pub async fn handle_update(package: Option<&str>, config: &Config) -> Result<()> {
     match package {
-        Some(p) => update_one(p).await,
-        None => update_all().await,
+        Some(p) => update_one(p, config).await,
+        None => update_all(config).await,
     }
 }
 
-async fn update_one(package: &str) -> Result<()> {
+async fn update_one(package: &str, config: &Config) -> Result<()> {
     let (owner, repo, _) = parse_package(package)?;
     let key = format!("{}/{}", owner, repo);
     let reg = Registry::load()?;
@@ -84,7 +85,7 @@ async fn update_one(package: &str) -> Result<()> {
     let installed = reg.packages.get(&key).unwrap();
     println!("Checking {} (current: {})...", key, installed.version);
 
-    let client = GithubClient::new(None)?;
+    let client = GithubClient::new(config.github_token.clone())?;
     let latest = client.get_release(&owner, &repo, "latest").await?;
 
     if latest.tag_name == installed.version {
@@ -96,10 +97,10 @@ async fn update_one(package: &str) -> Result<()> {
         installed.version, latest.tag_name
     );
     crate::registry::uninstall(package)?;
-    handle_install(package, false).await
+    handle_install(package, false, config).await
 }
 
-async fn update_all() -> Result<()> {
+async fn update_all(config: &Config) -> Result<()> {
     let reg = Registry::load()?;
     if reg.packages.is_empty() {
         println!("No packages installed.");
@@ -109,7 +110,7 @@ async fn update_all() -> Result<()> {
     let mut updated = 0u32;
     let mut current = 0u32;
     for name in &names {
-        match update_one(name).await {
+        match update_one(name, config).await {
             Ok(()) => updated += 1,
             Err(e) => {
                 if e.to_string().contains("up to date") {
