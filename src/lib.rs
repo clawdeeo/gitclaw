@@ -5,4 +5,5 @@ pub mod github;
 pub mod install;
 pub mod platform;
 pub mod registry;
+pub mod self_update;
 pub mod util;

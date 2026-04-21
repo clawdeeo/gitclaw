@@ -39,4 +39,10 @@ pub enum Commands {
         #[arg(value_enum)]
         shell: Shell,
     },
+    /// Update gitclaw itself
+    SelfUpdate {
+        /// Only check for updates, don't install
+        #[arg(long)]
+        check: bool,
+    },
 }
