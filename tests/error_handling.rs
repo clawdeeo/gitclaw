@@ -12,6 +12,7 @@ fn test_extract_nonexistent_file() {
     let result = gitclaw::extract::extract_archive(
         std::path::Path::new("/nonexistent/path/to/file.tar.gz"),
         std::path::Path::new("/tmp/output"),
+        true,
     );
     assert!(result.is_err());
 }
@@ -28,7 +29,7 @@ fn test_extract_corrupted_tar_gz() {
     drop(file);
 
     let output_dir = temp_dir.path().join("output");
-    let result = gitclaw::extract::extract_archive(&archive_path, &output_dir);
+    let result = gitclaw::extract::extract_archive(&archive_path, &output_dir, true);
     assert!(result.is_err());
 }
 
@@ -44,7 +45,7 @@ fn test_extract_corrupted_zip() {
     drop(file);
 
     let output_dir = temp_dir.path().join("output");
-    let result = gitclaw::extract::extract_archive(&archive_path, &output_dir);
+    let result = gitclaw::extract::extract_archive(&archive_path, &output_dir, true);
     assert!(result.is_err());
 }
 
