@@ -153,3 +153,81 @@ pub fn extract_archive(archive_path: &Path, dest_dir: &Path) -> Result<()> {
 pub fn extract(archive_path: &Path, dest_dir: &Path) -> Result<()> {
     extract_archive(archive_path, dest_dir)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+    use std::io::Write;
+
+    fn create_test_tar_gz(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::PathBuf {
+        let archive_path = dir.path().join("test.tar.gz");
+        let file = fs::File::create(&archive_path).unwrap();
+        let enc = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        let mut builder = tar::Builder::new(enc);
+
+        for (name, content) in files {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(content.len() as u64);
+            header.set_mode(0o644);
+            header.set_cksum();
+            builder.append_data(&mut header, *name, &content[..]).unwrap();
+        }
+
+        builder.finish().unwrap();
+        archive_path
+    }
+
+    fn create_test_zip(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::PathBuf {
+        let archive_path = dir.path().join("test.zip");
+        let file = fs::File::create(&archive_path).unwrap();
+        let mut writer = zip::ZipWriter::new(file);
+        let options = zip::write::FileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
+
+        for (name, content) in files {
+            writer.start_file(*name, options).unwrap();
+            writer.write_all(*content).unwrap();
+        }
+
+        writer.finish().unwrap();
+        archive_path
+    }
+
+    #[test]
+    fn test_detect_archive_type_tar_gz() {
+        assert_eq!(detect_archive_type(Path::new("test.tar.gz")).unwrap(), ArchiveType::TarGz);
+        assert_eq!(detect_archive_type(Path::new("test.tgz")).unwrap(), ArchiveType::TarGz);
+    }
+
+    #[test]
+    fn test_detect_archive_type_zip() {
+        assert_eq!(detect_archive_type(Path::new("test.zip")).unwrap(), ArchiveType::Zip);
+    }
+
+    #[test]
+    fn test_extract_tar_gz() {
+        let temp = TempDir::new().unwrap();
+        let files = vec![("file1.txt", b"Hello"), ("file2.txt", b"World")];
+        let archive = create_test_tar_gz(&temp, &files);
+        
+        let dest = temp.path().join("extracted");
+        extract_tar_gz(&archive, &dest).unwrap();
+        
+        assert!(dest.join("file1.txt").exists());
+        assert!(dest.join("file2.txt").exists());
+    }
+
+    #[test]
+    fn test_extract_zip() {
+        let temp = TempDir::new().unwrap();
+        let files = vec![("file1.txt", b"Hello"), ("file2.txt", b"World")];
+        let archive = create_test_zip(&temp, &files);
+        
+        let dest = temp.path().join("extracted");
+        extract_zip(&archive, &dest).unwrap();
+        
+        assert!(dest.join("file1.txt").exists());
+        assert!(dest.join("file2.txt").exists());
+    }
+}
