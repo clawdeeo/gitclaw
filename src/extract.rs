@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn test_extract_tar_gz() {
         let temp = TempDir::new().unwrap();
-        let files = vec![("file1.txt", b"Hello"), ("file2.txt", b"World")];
+        let files: [(&str, &[u8]); 2] = [("file1.txt", b"Hello"), ("file2.txt", b"World")];
         let archive = create_test_tar_gz(&temp, &files);
         
         let dest = temp.path().join("extracted");
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn test_extract_zip() {
         let temp = TempDir::new().unwrap();
-        let files = vec![("file1.txt", b"Hello"), ("file2.txt", b"World")];
+        let files: [(&str, &[u8]); 2] = [("file1.txt", b"Hello"), ("file2.txt", b"World")];
         let archive = create_test_zip(&temp, &files);
         
         let dest = temp.path().join("extracted");
