@@ -1,11 +1,10 @@
 use anyhow::{anyhow, bail, Result};
-use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
 use crate::extract::extract_archive;
-use crate::github::{parse_package, Asset, GithubClient, Platform, Release, find_matching_asset};
+use crate::github::{find_matching_asset, parse_package, Asset, GithubClient, Platform, Release};
 use crate::registry::{bin_dir, InstalledPackage, Registry};
 
 pub async fn handle_install(package: &str, force: bool) -> Result<()> {
@@ -15,7 +14,10 @@ pub async fn handle_install(package: &str, force: bool) -> Result<()> {
     let mut reg = Registry::load()?;
     if !force && reg.is_installed(&key) {
         let pkg = reg.packages.get(&key).unwrap();
-        println!("{} already installed ({}). Use --force to reinstall.", key, pkg.version);
+        println!(
+            "{} already installed ({}). Use --force to reinstall.",
+            key, pkg.version
+        );
         return Ok(());
     }
 
@@ -89,7 +91,10 @@ async fn update_one(package: &str) -> Result<()> {
         println!("{} is up to date ({})", key, installed.version);
         return Ok(());
     }
-    println!("Update available: {} -> {}", installed.version, latest.tag_name);
+    println!(
+        "Update available: {} -> {}",
+        installed.version, latest.tag_name
+    );
     crate::registry::uninstall(package)?;
     handle_install(package, false).await
 }
@@ -134,43 +139,59 @@ fn select_best_asset(release: &Release) -> Result<&Asset> {
     }
 }
 
-fn make_progress_bar(size: u64) -> ProgressBar {
-    let pb = ProgressBar::new(size);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-            .unwrap()
-            .progress_chars("█▓░"),
-    );
-    pb
-}
-
 fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
     use walkdir::WalkDir;
     for entry in WalkDir::new(dir).max_depth(3) {
         let entry = entry?;
-        if !entry.file_type().is_file() { continue; }
-        let stem = entry.path().file_stem().unwrap_or_default().to_string_lossy();
-        if stem != repo_name { continue; }
-        #[cfg(unix)] {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let stem = entry
+            .path()
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy();
+        if stem != repo_name {
+            continue;
+        }
+        #[cfg(unix)]
+        {
             use std::os::unix::fs::PermissionsExt;
-            if fs::metadata(entry.path()).map(|m| m.permissions().mode() & 0o111 != 0).unwrap_or(false) {
+            if fs::metadata(entry.path())
+                .map(|m| m.permissions().mode() & 0o111 != 0)
+                .unwrap_or(false)
+            {
                 return Ok(entry.path().to_path_buf());
             }
         }
-        #[cfg(windows)] { return Ok(entry.path().to_path_buf()); }
+        #[cfg(windows)]
+        {
+            return Ok(entry.path().to_path_buf());
+        }
     }
     for entry in WalkDir::new(dir).max_depth(3) {
         let entry = entry?;
-        if !entry.file_type().is_file() { continue; }
-        #[cfg(unix)] {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        #[cfg(unix)]
+        {
             use std::os::unix::fs::PermissionsExt;
-            if fs::metadata(entry.path()).map(|m| m.permissions().mode() & 0o111 != 0).unwrap_or(false) {
+            if fs::metadata(entry.path())
+                .map(|m| m.permissions().mode() & 0o111 != 0)
+                .unwrap_or(false)
+            {
                 return Ok(entry.path().to_path_buf());
             }
         }
-        #[cfg(windows)] {
-            if entry.path().extension().map(|e| e == "exe").unwrap_or(false) {
+        #[cfg(windows)]
+        {
+            if entry
+                .path()
+                .extension()
+                .map(|e| e == "exe")
+                .unwrap_or(false)
+            {
                 return Ok(entry.path().to_path_buf());
             }
         }
@@ -182,8 +203,16 @@ fn create_symlink(binary: &Path, name: &str) -> Result<()> {
     let dir = bin_dir()?;
     fs::create_dir_all(&dir)?;
     let link = dir.join(name);
-    if link.exists() || link.is_symlink() { fs::remove_file(&link)?; }
-    #[cfg(unix)] { std::os::unix::fs::symlink(binary, &link)?; }
-    #[cfg(windows)] { fs::copy(binary, &link)?; }
+    if link.exists() || link.is_symlink() {
+        fs::remove_file(&link)?;
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(binary, &link)?;
+    }
+    #[cfg(windows)]
+    {
+        fs::copy(binary, &link)?;
+    }
     Ok(())
 }

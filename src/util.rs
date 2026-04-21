@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::{anyhow, Result};
 use std::env;
 use std::path::PathBuf;
@@ -42,12 +44,19 @@ pub fn ensure_dirs() -> Result<()> {
 }
 
 pub fn is_in_path(binary: &str) -> bool {
-    env::var("PATH").map(|path| path.split(':').any(|dir| PathBuf::from(dir).join(binary).exists())).unwrap_or(false)
+    env::var("PATH")
+        .map(|path| {
+            path.split(':')
+                .any(|dir| PathBuf::from(dir).join(binary).exists())
+        })
+        .unwrap_or(false)
 }
 
 pub fn format_bytes(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
-    if bytes == 0 { return "0 B".to_string(); }
+    if bytes == 0 {
+        return "0 B".to_string();
+    }
     let exp = (bytes as f64).log(1024.0).min(UNITS.len() as f64 - 1.0) as usize;
     let value = bytes as f64 / 1024f64.powi(exp as i32);
     format!("{:.1} {}", value, UNITS[exp])

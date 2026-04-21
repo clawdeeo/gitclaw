@@ -17,7 +17,9 @@ fn create_test_tar_gz(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::Path
         header.set_size(content.len() as u64);
         header.set_mode(0o644);
         header.set_cksum();
-        builder.append_data(&mut header, *name, &content[..]).unwrap();
+        builder
+            .append_data(&mut header, *name, &content[..])
+            .unwrap();
     }
 
     builder.finish().unwrap();
@@ -29,8 +31,8 @@ fn create_test_zip(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::PathBuf
     let archive_path = dir.path().join("test.zip");
     let file = fs::File::create(&archive_path).unwrap();
     let mut writer = zip::ZipWriter::new(file);
-    let options = zip::write::FileOptions::default()
-        .compression_method(zip::CompressionMethod::Stored);
+    let options =
+        zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
     for (name, content) in files {
         writer.start_file(*name, options).unwrap();
@@ -53,7 +55,9 @@ fn create_test_tar_bz2(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::Pat
         header.set_size(content.len() as u64);
         header.set_mode(0o644);
         header.set_cksum();
-        builder.append_data(&mut header, *name, &content[..]).unwrap();
+        builder
+            .append_data(&mut header, *name, &content[..])
+            .unwrap();
     }
 
     builder.finish().unwrap();
@@ -72,7 +76,9 @@ fn create_test_tar_xz(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::Path
         header.set_size(content.len() as u64);
         header.set_mode(0o644);
         header.set_cksum();
-        builder.append_data(&mut header, *name, &content[..]).unwrap();
+        builder
+            .append_data(&mut header, *name, &content[..])
+            .unwrap();
     }
 
     builder.finish().unwrap();
@@ -88,80 +94,113 @@ fn create_test_binary(dir: &TempDir, name: &str, content: &[u8]) -> std::path::P
 
 #[test]
 fn test_detect_archive_type_tar_gz() {
-    use std::path::Path;
     use gitclaw::extract::ArchiveType;
-    
+    use std::path::Path;
+
     let path = Path::new("test.tar.gz");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::TarGz);
-    
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::TarGz
+    );
+
     let path = Path::new("test.tgz");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::TarGz);
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::TarGz
+    );
 }
 
 #[test]
 fn test_detect_archive_type_tar() {
-    use std::path::Path;
     use gitclaw::extract::ArchiveType;
-    
+    use std::path::Path;
+
     let path = Path::new("test.tar");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::TarGz);
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::TarGz
+    );
 }
 
 #[test]
 fn test_detect_archive_type_zip() {
-    use std::path::Path;
     use gitclaw::extract::ArchiveType;
-    
+    use std::path::Path;
+
     let path = Path::new("test.zip");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::Zip);
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::Zip
+    );
 }
 
 #[test]
 fn test_detect_archive_type_tar_bz2() {
-    use std::path::Path;
     use gitclaw::extract::ArchiveType;
-    
+    use std::path::Path;
+
     let path = Path::new("test.tar.bz2");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::TarBz2);
-    
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::TarBz2
+    );
+
     let path = Path::new("test.tbz2");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::TarBz2);
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::TarBz2
+    );
 }
 
 #[test]
 fn test_detect_archive_type_tar_xz() {
-    use std::path::Path;
     use gitclaw::extract::ArchiveType;
-    
+    use std::path::Path;
+
     let path = Path::new("test.tar.xz");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::TarXz);
-    
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::TarXz
+    );
+
     let path = Path::new("test.txz");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::TarXz);
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::TarXz
+    );
 }
 
 #[test]
 fn test_detect_archive_type_plain_binary() {
-    use std::path::Path;
     use gitclaw::extract::ArchiveType;
-    
+    use std::path::Path;
+
     let path = Path::new("test.bin");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::PlainBinary);
-    
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::PlainBinary
+    );
+
     let path = Path::new("test.exe");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::PlainBinary);
-    
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::PlainBinary
+    );
+
     let path = Path::new("test");
-    assert_eq!(gitclaw::extract::detect_archive_type(path).unwrap(), ArchiveType::PlainBinary);
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::PlainBinary
+    );
 }
 
 #[test]
 fn test_detect_archive_type_unknown() {
     use std::path::Path;
-    
+
     let path = Path::new("test.txt");
     assert!(gitclaw::extract::detect_archive_type(path).is_err());
-    
+
     let path = Path::new("test.pdf");
     assert!(gitclaw::extract::detect_archive_type(path).is_err());
 }
@@ -169,76 +208,97 @@ fn test_detect_archive_type_unknown() {
 #[test]
 fn test_extract_archive_tar_gz() {
     use gitclaw::extract::extract_archive;
-    
+
     let temp = TempDir::new().unwrap();
-    let files: [(&str, &[u8]); 2] = [("file1.txt", b"Hello, World!"), ("file2.txt", b"Test content")];
+    let files: [(&str, &[u8]); 2] = [
+        ("file1.txt", b"Hello, World!"),
+        ("file2.txt", b"Test content"),
+    ];
     let archive = create_test_tar_gz(&temp, &files);
     let dest = temp.path().join("extracted");
-    
+
     extract_archive(&archive, &dest).unwrap();
-    
+
     assert!(dest.join("file1.txt").exists());
     assert!(dest.join("file2.txt").exists());
-    assert_eq!(fs::read_to_string(dest.join("file1.txt")).unwrap(), "Hello, World!");
-    assert_eq!(fs::read_to_string(dest.join("file2.txt")).unwrap(), "Test content");
+    assert_eq!(
+        fs::read_to_string(dest.join("file1.txt")).unwrap(),
+        "Hello, World!"
+    );
+    assert_eq!(
+        fs::read_to_string(dest.join("file2.txt")).unwrap(),
+        "Test content"
+    );
 }
 
 #[test]
 fn test_extract_archive_zip() {
     use gitclaw::extract::extract_archive;
-    
+
     let temp = TempDir::new().unwrap();
-    let files: [(&str, &[u8]); 2] = [("file1.txt", b"Hello, World!"), ("file2.txt", b"Test content")];
+    let files: [(&str, &[u8]); 2] = [
+        ("file1.txt", b"Hello, World!"),
+        ("file2.txt", b"Test content"),
+    ];
     let archive = create_test_zip(&temp, &files);
     let dest = temp.path().join("extracted");
-    
+
     extract_archive(&archive, &dest).unwrap();
-    
+
     assert!(dest.join("file1.txt").exists());
     assert!(dest.join("file2.txt").exists());
-    assert_eq!(fs::read_to_string(dest.join("file1.txt")).unwrap(), "Hello, World!");
+    assert_eq!(
+        fs::read_to_string(dest.join("file1.txt")).unwrap(),
+        "Hello, World!"
+    );
 }
 
 #[test]
 fn test_extract_archive_tar_bz2() {
     use gitclaw::extract::extract_archive;
-    
+
     let temp = TempDir::new().unwrap();
     let files: [(&str, &[u8]); 1] = [("test.txt", b"Bz2 compressed")];
     let archive = create_test_tar_bz2(&temp, &files);
     let dest = temp.path().join("extracted");
-    
+
     extract_archive(&archive, &dest).unwrap();
-    
+
     assert!(dest.join("test.txt").exists());
-    assert_eq!(fs::read_to_string(dest.join("test.txt")).unwrap(), "Bz2 compressed");
+    assert_eq!(
+        fs::read_to_string(dest.join("test.txt")).unwrap(),
+        "Bz2 compressed"
+    );
 }
 
 #[test]
 fn test_extract_archive_tar_xz() {
     use gitclaw::extract::extract_archive;
-    
+
     let temp = TempDir::new().unwrap();
     let files: [(&str, &[u8]); 1] = [("test.txt", b"Xz compressed")];
     let archive = create_test_tar_xz(&temp, &files);
     let dest = temp.path().join("extracted");
-    
+
     extract_archive(&archive, &dest).unwrap();
-    
+
     assert!(dest.join("test.txt").exists());
-    assert_eq!(fs::read_to_string(dest.join("test.txt")).unwrap(), "Xz compressed");
+    assert_eq!(
+        fs::read_to_string(dest.join("test.txt")).unwrap(),
+        "Xz compressed"
+    );
 }
 
 #[test]
 fn test_extract_archive_plain_binary() {
     use gitclaw::extract::extract_archive;
-    
+
     let temp = TempDir::new().unwrap();
     let binary = create_test_binary(&temp, "myapp", b"binary content");
     let dest = temp.path().join("extracted");
-    
+
     extract_archive(&binary, &dest).unwrap();
-    
+
     assert!(dest.join("myapp").exists());
     assert_eq!(fs::read(dest.join("myapp")).unwrap(), b"binary content");
 }
@@ -246,28 +306,37 @@ fn test_extract_archive_plain_binary() {
 #[test]
 fn test_extract_archive_nested_dirs() {
     use gitclaw::extract::extract_archive;
-    
+
     let temp = TempDir::new().unwrap();
-    let files: [(&str, &[u8]); 2] = [("dir1/file1.txt", b"Nested file 1"), ("dir1/dir2/file2.txt", b"Nested file 2")];
+    let files: [(&str, &[u8]); 2] = [
+        ("dir1/file1.txt", b"Nested file 1"),
+        ("dir1/dir2/file2.txt", b"Nested file 2"),
+    ];
     let archive = create_test_tar_gz(&temp, &files);
     let dest = temp.path().join("extracted");
-    
+
     extract_archive(&archive, &dest).unwrap();
-    
+
     assert!(dest.join("dir1/file1.txt").exists());
     assert!(dest.join("dir1/dir2/file2.txt").exists());
-    assert_eq!(fs::read_to_string(dest.join("dir1/file1.txt")).unwrap(), "Nested file 1");
-    assert_eq!(fs::read_to_string(dest.join("dir1/dir2/file2.txt")).unwrap(), "Nested file 2");
+    assert_eq!(
+        fs::read_to_string(dest.join("dir1/file1.txt")).unwrap(),
+        "Nested file 1"
+    );
+    assert_eq!(
+        fs::read_to_string(dest.join("dir1/dir2/file2.txt")).unwrap(),
+        "Nested file 2"
+    );
 }
 
 #[test]
 fn test_extract_archive_nonexistent() {
     use gitclaw::extract::extract_archive;
-    
+
     let temp = TempDir::new().unwrap();
     let nonexistent = temp.path().join("nonexistent.tar.gz");
     let dest = temp.path().join("extracted");
-    
+
     let result = extract_archive(&nonexistent, &dest);
     assert!(result.is_err());
 }

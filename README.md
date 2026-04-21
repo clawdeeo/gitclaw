@@ -1,5 +1,7 @@
 # gitclaw
 
+[![CI](https://github.com/clawdeeo/gitclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/clawdeeo/gitclaw/actions/workflows/ci.yml)
+
 Install software directly from GitHub releases.
 
 ## Overview

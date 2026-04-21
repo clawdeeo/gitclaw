@@ -25,19 +25,26 @@ pub struct Registry {
 
 impl Registry {
     fn path() -> Result<PathBuf> {
-        Ok(dirs::home_dir().ok_or_else(|| anyhow!("No home directory"))?.join(".gitclaw").join("registry.toml"))
+        Ok(dirs::home_dir()
+            .ok_or_else(|| anyhow!("No home directory"))?
+            .join(".gitclaw")
+            .join("registry.toml"))
     }
 
     pub fn load() -> Result<Self> {
         let p = Self::path()?;
-        if !p.exists() { return Ok(Self::default()); }
+        if !p.exists() {
+            return Ok(Self::default());
+        }
         let s = fs::read_to_string(&p).context("Read registry")?;
-        Ok(toml::from_str(&s).context("Parse registry")?)
+        toml::from_str(&s).context("Parse registry")
     }
 
     pub fn save(&self) -> Result<()> {
         let p = Self::path()?;
-        if let Some(parent) = p.parent() { fs::create_dir_all(parent)?; }
+        if let Some(parent) = p.parent() {
+            fs::create_dir_all(parent)?;
+        }
         let s = toml::to_string_pretty(self).context("Serialize registry")?;
         fs::write(&p, s).context("Write registry")?;
         debug!("Registry saved to {:?}", p);
@@ -58,7 +65,9 @@ impl Registry {
 }
 
 pub fn gitclaw_home() -> Result<PathBuf> {
-    Ok(dirs::home_dir().ok_or_else(|| anyhow!("No home directory"))?.join(".gitclaw"))
+    Ok(dirs::home_dir()
+        .ok_or_else(|| anyhow!("No home directory"))?
+        .join(".gitclaw"))
 }
 
 pub fn bin_dir() -> Result<PathBuf> {
@@ -80,7 +89,7 @@ pub fn list_installed(verbose: bool) -> Result<()> {
             println!();
         }
     } else {
-        println!("{:<30} {:<15} {}", "PACKAGE", "VERSION", "DATE");
+        println!("{:<30} {:<15} DATE", "PACKAGE", "VERSION");
         println!("{}", "-".repeat(60));
         let mut pkgs: Vec<_> = reg.packages.values().collect();
         pkgs.sort_by_key(|p| &p.name);
@@ -97,7 +106,9 @@ pub fn uninstall(package: &str) -> Result<()> {
     let (owner, repo, _) = crate::github::parse_package(package)?;
     let key = format!("{}/{}", owner, repo);
     let mut reg = Registry::load()?;
-    let pkg = reg.remove(&key).ok_or_else(|| anyhow!("{} not installed", key))?;
+    let pkg = reg
+        .remove(&key)
+        .ok_or_else(|| anyhow!("{} not installed", key))?;
 
     if pkg.install_dir.exists() {
         fs::remove_dir_all(&pkg.install_dir).context("Remove install dir")?;

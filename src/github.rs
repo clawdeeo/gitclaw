@@ -16,7 +16,11 @@ pub enum GithubError {
     ApiError { status: u16, message: String },
 
     #[error("Release not found: {owner}/{repo}@{version}")]
-    ReleaseNotFound { owner: String, repo: String, version: String },
+    ReleaseNotFound {
+        owner: String,
+        repo: String,
+        version: String,
+    },
 
     #[error("No matching asset found for platform '{platform}' in release '{release}'")]
     NoMatchingAsset { platform: String, release: String },
@@ -82,10 +86,33 @@ impl Platform {
         match self {
             Platform::LinuxX86_64 => &["linux-x86_64", "linux-amd64", "linux-x64"],
             Platform::LinuxAarch64 => &["linux-aarch64", "linux-arm64"],
-            Platform::DarwinX86_64 => &["darwin-x86_64", "darwin-amd64", "darwin-x64", "macos-x86_64", "osx-x86_64"],
-            Platform::DarwinAarch64 => &["darwin-aarch64", "darwin-arm64", "macos-aarch64", "macos-arm64", "osx-arm64"],
-            Platform::WindowsX86_64 => &["windows-x86_64", "windows-amd64", "windows-x64", "win-x86_64", "win-amd64"],
-            Platform::WindowsAarch64 => &["windows-aarch64", "windows-arm64", "win-aarch64", "win-arm64"],
+            Platform::DarwinX86_64 => &[
+                "darwin-x86_64",
+                "darwin-amd64",
+                "darwin-x64",
+                "macos-x86_64",
+                "osx-x86_64",
+            ],
+            Platform::DarwinAarch64 => &[
+                "darwin-aarch64",
+                "darwin-arm64",
+                "macos-aarch64",
+                "macos-arm64",
+                "osx-arm64",
+            ],
+            Platform::WindowsX86_64 => &[
+                "windows-x86_64",
+                "windows-amd64",
+                "windows-x64",
+                "win-x86_64",
+                "win-amd64",
+            ],
+            Platform::WindowsAarch64 => &[
+                "windows-aarch64",
+                "windows-arm64",
+                "win-aarch64",
+                "win-arm64",
+            ],
         }
     }
 
@@ -158,7 +185,10 @@ impl GithubClient {
             format!("v{}", tag)
         };
 
-        let url = format!("{}/repos/{}/{}/releases/tags/{}", GITHUB_API, owner, repo, tag_normalized);
+        let url = format!(
+            "{}/repos/{}/{}/releases/tags/{}",
+            GITHUB_API, owner, repo, tag_normalized
+        );
         debug!("GET {}", url);
 
         let resp = self.add_auth(self.client.get(&url)).send().await?;
@@ -169,7 +199,10 @@ impl GithubClient {
 
         // If the 'v' prefix version failed, try without
         if tag_normalized.starts_with('v') && tag_normalized != tag {
-            let url = format!("{}/repos/{}/{}/releases/tags/{}", GITHUB_API, owner, repo, tag);
+            let url = format!(
+                "{}/repos/{}/{}/releases/tags/{}",
+                GITHUB_API, owner, repo, tag
+            );
             let resp = self.add_auth(self.client.get(&url)).send().await?;
             if resp.status().is_success() {
                 return Ok(resp.json().await?);
@@ -364,10 +397,11 @@ pub fn find_matching_asset(
         }
     }
 
-    best.map(|(_, a)| a).ok_or_else(|| GithubError::NoMatchingAsset {
-        platform: platform.to_string(),
-        release: release.tag_name.clone(),
-    })
+    best.map(|(_, a)| a)
+        .ok_or_else(|| GithubError::NoMatchingAsset {
+            platform: platform.to_string(),
+            release: release.tag_name.clone(),
+        })
 }
 
 /// Check if a filename is a checksum file
