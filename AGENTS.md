@@ -59,6 +59,71 @@ tests/
 
 ---
 
+## Development Workflow
+
+### Spec-Driven Development
+
+**For major releases, create a spec in `.specs/` folder:**
+
+```
+.specs/
+└── v0.2.0.md      # Release specification
+```
+
+**Spec lifecycle:**
+1. Create spec before coding (planning phase)
+2. Implement features according to spec
+3. Delete spec after release (gitignored, temporary)
+4. Update AGENTS.md with lessons learned
+
+**Why specs?**
+- Clear acceptance criteria
+- Reviewable before implementation
+- Shared understanding between human and agent
+
+### Pulling Before Branching
+**Always pull from master before creating a new branch.**
+
+If you forget and master has moved forward:
+
+```bash
+# Save your changes
+git checkout your-branch
+git rebase master
+# Resolve any conflicts, then:
+git push --force-with-lease origin your-branch
+```
+
+**Why:** Keeps history linear and avoids merge commits in PRs.
+
+### Feature Branch Workflow
+
+**For releases with multiple features:**
+
+1. Create spec in `.specs/vX.Y.Z.md`
+2. Create branch per feature: `feat/config`
+3. Open PR → review → squash merge
+4. Repeat for next feature
+5. Delete spec after release (specs are temporary/gitignored)
+
+**Branch naming:**
+- `feat/description` — new features
+- `fix/description` — bug fixes  
+- `refactor/description` — restructuring
+- `docs/description` — documentation
+
+### Commits
+Follow conventional commits:
+```
+<type>: <description>
+
+<body explaining why, not what>
+```
+
+Types: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`
+
+---
+
 ## CI/CD Structure
 
 ### Reusable Workflows
