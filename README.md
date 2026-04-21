@@ -62,17 +62,44 @@ gitclaw search sharkdp/fd --limit 5
 
 ## Configuration
 
+gitclaw supports configuration files in TOML format. Configs are merged in this order of precedence (higher overrides lower):
+
+1. `$GITCLAW_CONFIG` environment variable (highest priority)
+2. `./.gitclaw.toml` (project-local)
+3. `~/.config/gitclaw/config.toml` (XDG config)
+4. `~/.gitclaw.toml` (legacy)
+5. Defaults (lowest priority)
+
+### Example config file
+
+```toml
+# Installation directory (default: ~/.gitclaw/bin)
+install_dir = "~/bin"
+
+# Optional: GitHub token for higher rate limits or private repos
+github_token = "ghp_xxxxxxxxxxxx"
+
+[download]
+show_progress = true      # Show download progress bars (default: true)
+prefer_strip = true       # Strip directory components when extracting (default: true)
+verify_checksums = true   # Verify checksums when available (default: true)
+
+[output]
+color = "auto"            # Color output: auto, always, never (default: auto)
+quiet = false             # Suppress non-error output (default: false)
+verbose = false           # Enable verbose output (default: false)
+```
+
 ### GitHub Token
 
-Set a GitHub token to avoid rate limits:
+A GitHub token is **optional** and only required for:
+- **Private repositories** — accessing releases in private repos
+- **Higher rate limits** — unauthenticated requests are limited to 60/hour, authenticated gets 5,000/hour
+
+Set it via config file (see above), environment variable, or CLI flag:
 
 ```bash
 export GITHUB_TOKEN=your_token_here
-```
-
-Or pass it via CLI:
-
-```bash
 gitclaw --token YOUR_TOKEN install user/repo
 ```
 
@@ -84,8 +111,8 @@ gitclaw --token YOUR_TOKEN install user/repo
 4. **Download**: Stream asset to temp location with progress bar
 5. **Extract**: Handle tar.gz, zip, tar.bz2, tar.xz, or plain binaries
 6. **Discover**: Find executable binary in extracted contents
-7. **Install**: Copy binary to `~/.gitclaw/bin/`
-8. **Register**: Track installation in `~/.gitclaw/registry.toml`
+7. **Install**: Copy binary to the configured install directory
+8. **Register**: Track installation in the registry
 
 ## Directory Structure
 
@@ -112,9 +139,10 @@ gitclaw --token YOUR_TOKEN install user/repo
 src/
 ├── main.rs          # CLI entry point
 ├── cli.rs           # Clap CLI definitions
+├── config.rs        # Configuration file support
 ├── github.rs        # GitHub API client
 ├── install.rs       # Install/update logic
-├── extract/mod.rs   # Archive extraction
+├── extract/         # Archive extraction (flat module files)
 ├── platform.rs      # OS/arch detection
 ├── registry.rs      # Package tracking
 └── util.rs          # Utilities
