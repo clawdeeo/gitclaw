@@ -1,3 +1,4 @@
+pub mod checksum;
 pub mod cli;
 pub mod config;
 pub mod extract;
