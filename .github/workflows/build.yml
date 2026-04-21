@@ -7,7 +7,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  Linux:
+  linux:
     name: Linux
     runs-on: ubuntu-latest
     container: rust:1.75-slim
@@ -20,7 +20,7 @@ jobs:
           name: gitclaw-linux
           path: target/release/gitclaw
 
-  macOS:
+  macos:
     name: macOS
     runs-on: macos-latest
     steps:
@@ -32,7 +32,7 @@ jobs:
           name: gitclaw-macos
           path: target/release/gitclaw
 
-  Windows:
+  windows:
     name: Windows
     runs-on: windows-latest
     steps:
