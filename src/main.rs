@@ -2,12 +2,14 @@ use anyhow::Result;
 use clap::Parser;
 
 mod cli;
-mod extract;
 mod github;
 mod install;
 mod platform;
 mod registry;
 mod util;
+
+// Extract module as a directory
+mod extract;
 
 use cli::{Cli, Commands};
 

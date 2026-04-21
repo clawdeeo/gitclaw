@@ -1,0 +1,7 @@
+pub mod extract;
+pub mod cli;
+pub mod github;
+pub mod install;
+pub mod platform;
+pub mod registry;
+pub mod util;

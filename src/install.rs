@@ -34,9 +34,6 @@ pub async fn handle_install(package: &str, force: bool) -> Result<()> {
     std::fs::create_dir_all(&temp_dir)?;
     let download_path = temp_dir.join(&asset.name);
     client.download_asset(asset, &download_path).await?;
-    
-    // Read the downloaded file
-    let bytes = std::fs::read(&download_path)?;
 
     let install_dir = dirs::home_dir()
         .ok_or_else(|| anyhow!("No home directory"))?
@@ -45,7 +42,7 @@ pub async fn handle_install(package: &str, force: bool) -> Result<()> {
         .join(&key);
     fs::create_dir_all(&install_dir)?;
 
-    extract_archive(&bytes, &asset.name, &install_dir)?;
+    extract_archive(&download_path, &install_dir)?;
     let binary = find_binary(&install_dir, &repo)?;
 
     let pkg = InstalledPackage {
