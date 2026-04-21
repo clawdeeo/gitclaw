@@ -109,7 +109,7 @@ fn test_find_matching_asset_empty_assets() {
 /// Test asset matching with only checksum files
 #[test]
 fn test_find_matching_asset_only_checksums() {
-    use gitclaw::github::{Asset, find_matching_asset, Platform, Release};
+    use gitclaw::github::{find_matching_asset, Asset, Platform, Release};
 
     let release = Release {
         tag_name: "v1.0.0".to_string(),

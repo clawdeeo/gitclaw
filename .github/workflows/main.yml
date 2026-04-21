@@ -1,0 +1,19 @@
+name: Main
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  Verify:
+    uses: ./.github/workflows/verify.yml
+
+  Test:
+    needs: Verify
+    uses: ./.github/workflows/test.yml
+
+  Build:
+    needs: Test
+    uses: ./.github/workflows/build.yml

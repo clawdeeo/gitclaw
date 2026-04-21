@@ -1,0 +1,27 @@
+name: Verify
+
+on:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  Format:
+    name: Format
+    runs-on: ubuntu-latest
+    container: rust:1.75-slim
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add rustfmt
+      - run: cargo fmt --check
+
+  Clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    container: rust:1.75-slim
+    steps:
+      - uses: actions/checkout@v4
+      - run: apt-get update && apt-get install -y pkg-config libssl-dev
+      - run: rustup component add clippy
+      - run: cargo clippy -- -D warnings
