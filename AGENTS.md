@@ -82,14 +82,14 @@ tests/
 - Shared understanding between human and agent
 
 ### Pulling Before Branching
-**Always pull from master before creating a new branch.**
+**Always pull from main before creating a new branch.**
 
-If you forget and master has moved forward:
+If you forget and main has moved forward:
 
 ```bash
 # Save your changes
 git checkout your-branch
-git rebase master
+git rebase main
 # Resolve any conflicts, then:
 git push --force-with-lease origin your-branch
 ```
