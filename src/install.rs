@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
+use crate::checksum::{find_checksum_file, verify_file};
 use crate::config::Config;
 use crate::extract::extract_archive;
 use crate::github::{find_matching_asset, parse_package, Asset, GithubClient, Platform, Release};
@@ -13,6 +14,7 @@ pub async fn handle_install(
     package: &str,
     force: bool,
     dry_run: bool,
+    verify: bool,
     config: &Config,
 ) -> Result<()> {
     let (owner, repo, version) = parse_package(package)?;
@@ -62,6 +64,26 @@ pub async fn handle_install(
     client
         .download_asset(asset, &download_path, config.download.show_progress)
         .await?;
+
+    // Verify checksum if requested or configured
+    if verify || config.download.verify_checksums {
+        if let Some((algo, checksum_url)) = find_checksum_file(&asset.name, &release.assets) {
+            let checksum_data = client.download_text(&checksum_url).await?;
+            if let Some(expected) =
+                crate::checksum::parse_checksum_file(&checksum_data, &asset.name)
+            {
+                if !config.output.quiet {
+                    println!("Verifying checksum...");
+                }
+                verify_file(&download_path, &expected, algo)?;
+                if !config.output.quiet {
+                    println!("Checksum verified");
+                }
+            }
+        } else if verify {
+            bail!("Checksum verification requested but no checksum file found");
+        }
+    }
 
     let pkg_install_dir = config.install_dir.join("packages").join(&key);
     fs::create_dir_all(&pkg_install_dir)?;
@@ -132,7 +154,7 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
         );
     }
     crate::registry::uninstall(package, &config.install_dir)?;
-    handle_install(package, false, false, config).await
+    handle_install(package, false, false, false, config).await
 }
 
 async fn update_all(config: &Config) -> Result<()> {

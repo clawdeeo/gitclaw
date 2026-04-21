@@ -345,6 +345,18 @@ impl GithubClient {
 
         Ok(())
     }
+
+    /// Download text content from URL
+    pub async fn download_text(&self, url: &str) -> std::result::Result<String, GithubError> {
+        let resp = self.add_auth(self.client.get(url)).send().await?;
+        if !resp.status().is_success() {
+            return Err(GithubError::DownloadError(format!(
+                "HTTP {}",
+                resp.status()
+            )));
+        }
+        Ok(resp.text().await?)
+    }
 }
 
 /// Find the best matching asset for a given platform
