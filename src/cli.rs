@@ -16,6 +16,8 @@ pub enum Commands {
         package: String,
         #[arg(short, long)]
         force: bool,
+        #[arg(long)]
+        dry_run: bool,
     },
     List {
         #[arg(short, long)]

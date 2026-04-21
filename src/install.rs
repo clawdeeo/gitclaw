@@ -9,7 +9,12 @@ use crate::github::{find_matching_asset, parse_package, Asset, GithubClient, Pla
 use crate::registry::{InstalledPackage, Registry};
 use crate::util::{bin_dir_from, registry_path_from};
 
-pub async fn handle_install(package: &str, force: bool, config: &Config) -> Result<()> {
+pub async fn handle_install(
+    package: &str,
+    force: bool,
+    dry_run: bool,
+    config: &Config,
+) -> Result<()> {
     let (owner, repo, version) = parse_package(package)?;
     let key = format!("{}/{}", owner, repo);
 
@@ -31,6 +36,19 @@ pub async fn handle_install(package: &str, force: bool, config: &Config) -> Resu
     };
 
     let asset = select_best_asset(&release)?;
+
+    let pkg_install_dir = config.install_dir.join("packages").join(&key);
+    let bin_dir = bin_dir_from(&config.install_dir);
+
+    if dry_run {
+        println!("[DRY RUN] Would install {}:", key);
+        println!("  Release:      {}", release.tag_name);
+        println!("  Asset:        {}", asset.name);
+        println!("  Install dir:  {}", pkg_install_dir.display());
+        println!("  Binary:       {}/{}", pkg_install_dir.display(), repo);
+        println!("  Symlink:      {}/{}", bin_dir.display(), repo);
+        return Ok(());
+    }
 
     if !config.output.quiet {
         println!("Release: {}", release.tag_name);
@@ -114,7 +132,7 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
         );
     }
     crate::registry::uninstall(package, &config.install_dir)?;
-    handle_install(package, false, config).await
+    handle_install(package, false, false, config).await
 }
 
 async fn update_all(config: &Config) -> Result<()> {
