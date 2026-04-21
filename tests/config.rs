@@ -12,12 +12,12 @@ use gitclaw::config::{Config, DownloadConfig, OutputConfig};
 #[test]
 fn test_default_config() {
     let config = Config::default();
-    
+
     // Download defaults
     assert!(config.download.show_progress);
     assert!(config.download.prefer_strip);
     assert!(config.download.verify_checksums);
-    
+
     // Output defaults
     assert_eq!(config.output.color, "auto");
     assert!(!config.output.quiet);
@@ -29,8 +29,10 @@ fn test_default_config() {
 fn test_load_from_local() {
     let temp = TempDir::new().unwrap();
     let config_path = temp.path().join(".gitclaw.toml");
-    
-    fs::write(&config_path, r#"
+
+    fs::write(
+        &config_path,
+        r#"
 install_dir = "/custom/bin"
 github_token = "test-token"
 
@@ -39,19 +41,21 @@ show_progress = false
 
 [output]
 color = "never"
-"#).unwrap();
-    
+"#,
+    )
+    .unwrap();
+
     // Change to temp directory
     let original_dir = env::current_dir().unwrap();
     env::set_current_dir(&temp).unwrap();
-    
+
     // Load from local
     let config = gitclaw::config::Config::load_from_local().unwrap().unwrap();
     assert_eq!(config.install_dir, PathBuf::from("/custom/bin"));
     assert_eq!(config.github_token, Some("test-token".to_string()));
     assert!(!config.download.show_progress);
     assert_eq!(config.output.color, "never");
-    
+
     env::set_current_dir(original_dir).unwrap();
 }
 
@@ -61,17 +65,21 @@ fn test_load_from_legacy() {
     let temp = TempDir::new().unwrap();
     let home = temp.path();
     let config_path = home.join(".gitclaw.toml");
-    
-    fs::write(&config_path, r#"
+
+    fs::write(
+        &config_path,
+        r#"
 install_dir = "/legacy/bin"
-"#).unwrap();
-    
+"#,
+    )
+    .unwrap();
+
     // Mock home directory
     env::set_var("HOME", home);
-    
+
     let config = Config::load_from_legacy().unwrap().unwrap();
     assert_eq!(config.install_dir, PathBuf::from("/legacy/bin"));
-    
+
     env::remove_var("HOME");
 }
 
@@ -80,8 +88,10 @@ install_dir = "/legacy/bin"
 fn test_load_from_env() {
     let temp = TempDir::new().unwrap();
     let config_path = temp.path().join("env-config.toml");
-    
-    fs::write(&config_path, r#"
+
+    fs::write(
+        &config_path,
+        r#"
 install_dir = "/env/bin"
 github_token = "env-token"
 
@@ -90,16 +100,18 @@ verify_checksums = false
 
 [output]
 verbose = true
-"#).unwrap();
-    
+"#,
+    )
+    .unwrap();
+
     env::set_var("GITCLAW_CONFIG", &config_path);
-    
+
     let config = Config::load_from_env().unwrap().unwrap();
     assert_eq!(config.install_dir, PathBuf::from("/env/bin"));
     assert_eq!(config.github_token, Some("env-token".to_string()));
     assert!(!config.download.verify_checksums);
     assert!(config.output.verbose);
-    
+
     env::remove_var("GITCLAW_CONFIG");
 }
 
@@ -110,7 +122,7 @@ fn test_config_merge_precedence() {
     let mut config = Config::default();
     assert!(config.download.show_progress);
     assert_eq!(config.output.color, "auto");
-    
+
     // Merge another config
     let other = Config {
         install_dir: PathBuf::from("/other"),
@@ -125,9 +137,9 @@ fn test_config_merge_precedence() {
             ..Default::default()
         },
     };
-    
+
     config.merge(other);
-    
+
     assert_eq!(config.install_dir, PathBuf::from("/other"));
     assert_eq!(config.github_token, Some("other".to_string()));
     assert!(!config.download.show_progress); // Changed
@@ -142,9 +154,9 @@ fn test_github_token_accessor() {
         github_token: Some("test-token".to_string()),
         ..Default::default()
     };
-    
+
     assert_eq!(config.github_token(), Some("test-token"));
-    
+
     let config_no_token = Config::default();
     assert_eq!(config_no_token.github_token(), None);
 }
@@ -156,7 +168,7 @@ fn test_install_dir_accessor() {
         install_dir: PathBuf::from("/custom/install"),
         ..Default::default()
     };
-    
+
     assert_eq!(config.install_dir(), &PathBuf::from("/custom/install"));
 }
 
@@ -165,9 +177,9 @@ fn test_install_dir_accessor() {
 fn test_parse_invalid_toml() {
     let temp = TempDir::new().unwrap();
     let config_path = temp.path().join("invalid.toml");
-    
+
     fs::write(&config_path, "this is not valid toml {{").unwrap();
-    
+
     let result = Config::load_from_env();
     // Should fail gracefully
     // (Can't easily test this without setting env var, but parse logic handles it)
