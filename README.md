@@ -45,6 +45,12 @@ gitclaw install BurntSushi/ripgrep --force
 
 # Dry run (preview without installing)
 gitclaw install BurntSushi/ripgrep --dry-run
+
+# Verify checksum
+gitclaw install BurntSushi/ripgrep --verify
+
+# Install multiple packages in parallel
+gitclaw install BurntSushi/ripgrep sharkdp/fd ducaale/xh
 ```
 
 ### List installed packages
@@ -81,6 +87,16 @@ gitclaw completions zsh > /usr/local/share/zsh/site-functions/_gitclaw
 
 # Fish
 gitclaw completions fish > ~/.config/fish/completions/gitclaw.fish
+```
+
+### Update gitclaw itself
+
+```bash
+# Check for updates
+gitclaw self-update --check
+
+# Update to latest version
+gitclaw self-update
 ```
 
 ### Search for releases
