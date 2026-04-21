@@ -7,25 +7,39 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build Release
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            container: rust:1.75-slim
-    runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container || null }}
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    container: rust:1.75-slim
     steps:
       - uses: actions/checkout@v4
-      - if: matrix.os == 'ubuntu-latest'
-        run: apt-get update && apt-get install -y pkg-config libssl-dev
-      - if: matrix.os != 'ubuntu-latest'
-        uses: dtolnay/rust-toolchain@1.75
+      - run: apt-get update && apt-get install -y pkg-config libssl-dev
       - run: cargo build --release
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: gitclaw-${{ matrix.os }}
-          path: target/release/gitclaw${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+          name: gitclaw-linux
+          path: target/release/gitclaw
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.75
+      - run: cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gitclaw-macos
+          path: target/release/gitclaw
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.75
+      - run: cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gitclaw-windows
+          path: target/release/gitclaw.exe
