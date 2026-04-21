@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-21
+
+### Added
+- Configuration file support with multiple config sources (env, project-local, XDG, legacy)
+- `--dry-run` flag for install command to preview changes without downloading
+- `completions` command for generating shell completions (bash, zsh, fish, powershell, elvish)
+- Config options: `install_dir`, `show_progress`, `prefer_strip`, `verify_checksums`, `color`, `quiet`, `verbose`
+
+### Changed
+- Wired config values throughout codebase (no longer ignored)
+
 ## [0.1.0] - 2026-04-21
 
 ### Added

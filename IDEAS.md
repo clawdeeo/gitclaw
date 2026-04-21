@@ -262,10 +262,10 @@ show_progress = true
 
 ## Implementation Priority
 
-### Phase 1 (v0.2.0)
-1. Config file support
-2. Shell completions
-3. Dry run mode
+### Phase 1 (v0.2.0) ✅
+1. Config file support ✅
+2. Shell completions ✅
+3. Dry run mode ✅
 
 ### Phase 2 (v0.3.0)
 4. Self-update
