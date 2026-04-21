@@ -4,6 +4,19 @@
 
 Install software directly from GitHub releases.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [How It Works](#how-it-works)
+- [Directory Structure](#directory-structure)
+- [Supported Platforms](#supported-platforms)
+- [Architecture](#architecture)
+- [Development](#development)
+- [License](#license)
+
 ## Overview
 
 gitclaw is a CLI tool that automates the discovery, download, and installation of binaries from GitHub releases. It handles OS/architecture detection, asset matching, extraction, and PATH management.
