@@ -281,25 +281,17 @@ impl GithubClient {
         Ok(resp.json().await?)
     }
 
-    /// Download an asset to a file path with progress bar
+    /// Download an asset to a file path with optional progress bar
     pub async fn download_asset(
         &self,
         asset: &Asset,
         path: &Path,
+        show_progress: bool,
     ) -> std::result::Result<(), GithubError> {
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-
-        // Create progress bar
-        let pb = ProgressBar::new(asset.size);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                .map_err(|e| GithubError::ParseError(e.to_string()))?
-                .progress_chars("█▓░"),
-        );
 
         // Start download
         let resp = self
@@ -315,22 +307,42 @@ impl GithubClient {
         }
 
         let total = resp.content_length().unwrap_or(asset.size);
-        pb.set_length(total);
 
-        // Stream to file with progress updates
-        let mut file = std::fs::File::create(path)?;
-        let mut downloaded: u64 = 0;
+        if show_progress {
+            // Create progress bar
+            let pb = ProgressBar::new(total);
+            pb.set_style(
+                ProgressStyle::default_bar()
+                    .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                    .map_err(|e| GithubError::ParseError(e.to_string()))?
+                    .progress_chars("█▓░"),
+            );
 
-        use futures::StreamExt;
-        let mut stream = resp.bytes_stream();
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            file.write_all(&chunk)?;
-            downloaded += chunk.len() as u64;
-            pb.set_position(downloaded);
+            // Stream to file with progress updates
+            let mut file = std::fs::File::create(path)?;
+            let mut downloaded: u64 = 0;
+
+            use futures::StreamExt;
+            let mut stream = resp.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
+                file.write_all(&chunk)?;
+                downloaded += chunk.len() as u64;
+                pb.set_position(downloaded);
+            }
+
+            pb.finish_with_message("Downloaded");
+        } else {
+            // Download without progress bar
+            let mut file = std::fs::File::create(path)?;
+            use futures::StreamExt;
+            let mut stream = resp.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
+                file.write_all(&chunk)?;
+            }
         }
 
-        pb.finish_with_message("Downloaded");
         Ok(())
     }
 }

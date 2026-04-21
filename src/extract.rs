@@ -133,18 +133,36 @@ pub fn extract_plain_binary(archive_path: &Path, dest_dir: &Path) -> Result<()> 
     Ok(())
 }
 
-pub fn extract_archive(archive_path: &Path, dest_dir: &Path) -> Result<()> {
+pub fn extract_archive(archive_path: &Path, dest_dir: &Path, prefer_strip: bool) -> Result<()> {
     let archive_type = detect_archive_type(archive_path)?;
 
-    match archive_type {
-        ArchiveType::TarGz => extract_tar_gz(archive_path, dest_dir),
-        ArchiveType::Zip => extract_zip(archive_path, dest_dir),
-        ArchiveType::TarBz2 => extract_tar_bz2(archive_path, dest_dir),
-        ArchiveType::TarXz => extract_tar_xz(archive_path, dest_dir),
-        ArchiveType::PlainBinary => extract_plain_binary(archive_path, dest_dir),
+    if prefer_strip {
+        match archive_type {
+            ArchiveType::TarGz => extract_tar_gz(archive_path, dest_dir),
+            ArchiveType::Zip => extract_zip(archive_path, dest_dir),
+            ArchiveType::TarBz2 => extract_tar_bz2(archive_path, dest_dir),
+            ArchiveType::TarXz => extract_tar_xz(archive_path, dest_dir),
+            ArchiveType::PlainBinary => extract_plain_binary(archive_path, dest_dir),
+        }
+    } else {
+        // Extract into a subdirectory to avoid stripping
+        let name = archive_path
+            .file_stem()
+            .and_then(|n| n.to_str())
+            .unwrap_or("extracted");
+        let effective_dest = dest_dir.join(name);
+        fs::create_dir_all(&effective_dest)?;
+
+        match archive_type {
+            ArchiveType::TarGz => extract_tar_gz(archive_path, &effective_dest),
+            ArchiveType::Zip => extract_zip(archive_path, &effective_dest),
+            ArchiveType::TarBz2 => extract_tar_bz2(archive_path, &effective_dest),
+            ArchiveType::TarXz => extract_tar_xz(archive_path, &effective_dest),
+            ArchiveType::PlainBinary => extract_plain_binary(archive_path, &effective_dest),
+        }
     }
 }
 
 pub fn extract(archive_path: &Path, dest_dir: &Path) -> Result<()> {
-    extract_archive(archive_path, dest_dir)
+    extract_archive(archive_path, dest_dir, true)
 }

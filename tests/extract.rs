@@ -217,7 +217,7 @@ fn test_extract_archive_tar_gz() {
     let archive = create_test_tar_gz(&temp, &files);
     let dest = temp.path().join("extracted");
 
-    extract_archive(&archive, &dest).unwrap();
+    extract_archive(&archive, &dest, true).unwrap();
 
     assert!(dest.join("file1.txt").exists());
     assert!(dest.join("file2.txt").exists());
@@ -243,7 +243,7 @@ fn test_extract_archive_zip() {
     let archive = create_test_zip(&temp, &files);
     let dest = temp.path().join("extracted");
 
-    extract_archive(&archive, &dest).unwrap();
+    extract_archive(&archive, &dest, true).unwrap();
 
     assert!(dest.join("file1.txt").exists());
     assert!(dest.join("file2.txt").exists());
@@ -262,7 +262,7 @@ fn test_extract_archive_tar_bz2() {
     let archive = create_test_tar_bz2(&temp, &files);
     let dest = temp.path().join("extracted");
 
-    extract_archive(&archive, &dest).unwrap();
+    extract_archive(&archive, &dest, true).unwrap();
 
     assert!(dest.join("test.txt").exists());
     assert_eq!(
@@ -280,7 +280,7 @@ fn test_extract_archive_tar_xz() {
     let archive = create_test_tar_xz(&temp, &files);
     let dest = temp.path().join("extracted");
 
-    extract_archive(&archive, &dest).unwrap();
+    extract_archive(&archive, &dest, true).unwrap();
 
     assert!(dest.join("test.txt").exists());
     assert_eq!(
@@ -297,7 +297,7 @@ fn test_extract_archive_plain_binary() {
     let binary = create_test_binary(&temp, "myapp", b"binary content");
     let dest = temp.path().join("extracted");
 
-    extract_archive(&binary, &dest).unwrap();
+    extract_archive(&binary, &dest, true).unwrap();
 
     assert!(dest.join("myapp").exists());
     assert_eq!(fs::read(dest.join("myapp")).unwrap(), b"binary content");
@@ -315,7 +315,7 @@ fn test_extract_archive_nested_dirs() {
     let archive = create_test_tar_gz(&temp, &files);
     let dest = temp.path().join("extracted");
 
-    extract_archive(&archive, &dest).unwrap();
+    extract_archive(&archive, &dest, true).unwrap();
 
     assert!(dest.join("dir1/file1.txt").exists());
     assert!(dest.join("dir1/dir2/file2.txt").exists());
@@ -337,6 +337,6 @@ fn test_extract_archive_nonexistent() {
     let nonexistent = temp.path().join("nonexistent.tar.gz");
     let dest = temp.path().join("extracted");
 
-    let result = extract_archive(&nonexistent, &dest);
+    let result = extract_archive(&nonexistent, &dest, true);
     assert!(result.is_err());
 }

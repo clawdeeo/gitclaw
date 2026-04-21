@@ -4,6 +4,8 @@ use anyhow::{anyhow, Result};
 use std::env;
 use std::path::PathBuf;
 
+use std::path::Path;
+
 pub fn home_dir() -> Result<PathBuf> {
     dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
 }
@@ -14,6 +16,10 @@ pub fn gitclaw_dir() -> Result<PathBuf> {
 
 pub fn bin_dir() -> Result<PathBuf> {
     Ok(gitclaw_dir()?.join("bin"))
+}
+
+pub fn bin_dir_from(base: &Path) -> PathBuf {
+    base.join("bin")
 }
 
 pub fn cache_dir() -> Result<PathBuf> {
@@ -28,8 +34,16 @@ pub fn packages_dir() -> Result<PathBuf> {
     Ok(gitclaw_dir()?.join("packages"))
 }
 
+pub fn packages_dir_from(base: &Path) -> PathBuf {
+    base.join("packages")
+}
+
 pub fn registry_path() -> Result<PathBuf> {
     Ok(gitclaw_dir()?.join("registry.toml"))
+}
+
+pub fn registry_path_from(base: &Path) -> PathBuf {
+    base.join("registry.toml")
 }
 
 pub fn config_path() -> Result<PathBuf> {
