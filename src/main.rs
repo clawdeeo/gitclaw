@@ -59,9 +59,11 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
     match cli.command {
-        Commands::Install { package, force } => {
-            install::handle_install(&package, force, &config).await?
-        }
+        Commands::Install {
+            package,
+            force,
+            dry_run,
+        } => install::handle_install(&package, force, dry_run, &config).await?,
         Commands::List { verbose } => registry::list_installed(verbose)?,
         Commands::Update { package } => install::handle_update(package.as_deref(), &config).await?,
         Commands::Uninstall { package } => registry::uninstall(&package, &config.install_dir)?,
