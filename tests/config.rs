@@ -74,12 +74,18 @@ install_dir = "/legacy/bin"
     )
     .unwrap();
 
-    // Mock home directory
+    // Mock home directory - use USERPROFILE on Windows, HOME on Unix
+    #[cfg(windows)]
+    env::set_var("USERPROFILE", home);
+    #[cfg(not(windows))]
     env::set_var("HOME", home);
 
     let config = Config::load_from_legacy().unwrap().unwrap();
     assert_eq!(config.install_dir, PathBuf::from("/legacy/bin"));
 
+    #[cfg(windows)]
+    env::remove_var("USERPROFILE");
+    #[cfg(not(windows))]
     env::remove_var("HOME");
 }
 
