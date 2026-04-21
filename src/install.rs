@@ -278,3 +278,62 @@ fn create_symlink(binary: &Path, name: &str, bin_dir: &Path) -> Result<()> {
     }
     Ok(())
 }
+
+/// Install multiple packages in parallel
+pub async fn handle_install_multiple(
+    packages: &[String],
+    force: bool,
+    dry_run: bool,
+    verify: bool,
+    config: &Config,
+) -> Result<()> {
+    use futures::future::join_all;
+
+    let total = packages.len();
+    if !config.output.quiet {
+        println!("Installing {} packages...", total);
+    }
+
+    let mut tasks = Vec::new();
+    for pkg in packages {
+        let pkg = pkg.clone();
+        let config = config.clone();
+        let task =
+            tokio::spawn(
+                async move { handle_install(&pkg, force, dry_run, verify, &config).await },
+            );
+        tasks.push(task);
+    }
+
+    let results = join_all(tasks).await;
+
+    let mut success = 0;
+    let mut failed = 0;
+    for result in results {
+        match result {
+            Ok(Ok(())) => success += 1,
+            Ok(Err(e)) => {
+                if !config.output.quiet {
+                    eprintln!("Error: {}", e);
+                }
+                failed += 1;
+            }
+            Err(e) => {
+                if !config.output.quiet {
+                    eprintln!("Task failed: {}", e);
+                }
+                failed += 1;
+            }
+        }
+    }
+
+    if !config.output.quiet {
+        println!("\nDone: {} succeeded, {} failed", success, failed);
+    }
+
+    if failed > 0 {
+        bail!("{} package(s) failed to install", failed);
+    }
+
+    Ok(())
+}
