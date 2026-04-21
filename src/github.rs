@@ -1,3 +1,4 @@
+use crate::config::Config;
 use anyhow::{bail, Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
@@ -436,11 +437,11 @@ pub fn parse_package(input: &str) -> Result<(String, String, Option<String>)> {
 }
 
 /// Search and display releases for a package
-pub async fn search_releases(package: &str, limit: usize) -> Result<()> {
+pub async fn search_releases(package: &str, limit: usize, config: &Config) -> Result<()> {
     let (owner, repo, _) = parse_package(package)?;
     println!("Releases for {}/{}:\n", owner, repo);
 
-    let client = GithubClient::new(None)?;
+    let client = GithubClient::new(config.github_token.clone())?;
 
     // We need to access the internal method - using the public API
     // Since get_releases is private, we'll use get_release with "latest" and fetch via API
