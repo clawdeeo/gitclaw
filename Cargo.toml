@@ -9,6 +9,10 @@ license = "MIT"
 name = "gitclaw"
 path = "src/main.rs"
 
+[lib]
+name = "gitclaw"
+path = "src/lib.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive", "env"] }
 tokio = { version = "1", features = ["full"] }
@@ -16,7 +20,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
-thiserror = "2"
+thiserror = "1"
 anyhow = "1"
 color-eyre = "0.6"
 indicatif = "0.17"
@@ -24,7 +28,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tar = "0.4"
 flate2 = "1"
-zip = "1"
+zip = { version = "2", default-features = false, features = ["deflate"] }
 bzip2 = "0.5"
 xz2 = "0.1"
 walkdir = "2"

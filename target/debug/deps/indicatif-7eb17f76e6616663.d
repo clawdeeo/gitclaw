@@ -1,0 +1,13 @@
+/root/.openclaw/workspace/projects/gitclaw/target/debug/deps/indicatif-7eb17f76e6616663.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/draw_target.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/format.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/iter.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/multi.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/progress_bar.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/state.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/style.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/term_like.rs
+
+/root/.openclaw/workspace/projects/gitclaw/target/debug/deps/libindicatif-7eb17f76e6616663.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/draw_target.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/format.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/iter.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/multi.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/progress_bar.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/state.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/style.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/term_like.rs
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/draw_target.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/format.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/iter.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/multi.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/progress_bar.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/state.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/style.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/indicatif-0.17.7/src/term_like.rs:
