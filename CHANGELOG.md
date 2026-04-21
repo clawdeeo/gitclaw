@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-21
+
+### Added
+- Self-update command to update gitclaw itself (`gitclaw self-update`, `gitclaw self-update --check`)
+- Checksum verification for downloaded assets (`--verify` flag)
+- Parallel install support for multiple packages (`gitclaw install pkg1 pkg2 pkg3`)
+
+### Changed
+- Install command now accepts multiple package arguments
+
 ## [0.2.0] - 2026-04-21
 
 ### Added
