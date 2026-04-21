@@ -64,7 +64,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         }
         Commands::List { verbose } => registry::list_installed(verbose)?,
         Commands::Update { package } => install::handle_update(package.as_deref(), &config).await?,
-        Commands::Uninstall { package } => registry::uninstall(&package)?,
+        Commands::Uninstall { package } => registry::uninstall(&package, &config.install_dir)?,
         Commands::Search { package, limit } => {
             github::search_releases(&package, limit, &config).await?
         }

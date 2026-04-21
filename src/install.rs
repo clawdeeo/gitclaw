@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::warn;
@@ -6,13 +6,15 @@ use tracing::warn;
 use crate::config::Config;
 use crate::extract::extract_archive;
 use crate::github::{find_matching_asset, parse_package, Asset, GithubClient, Platform, Release};
-use crate::registry::{bin_dir, InstalledPackage, Registry};
+use crate::registry::{InstalledPackage, Registry};
+use crate::util::{bin_dir_from, registry_path_from};
 
 pub async fn handle_install(package: &str, force: bool, config: &Config) -> Result<()> {
     let (owner, repo, version) = parse_package(package)?;
     let key = format!("{}/{}", owner, repo);
 
-    let mut reg = Registry::load()?;
+    let registry_path = registry_path_from(&config.install_dir);
+    let mut reg = Registry::load_from(&registry_path)?;
     if !force && reg.is_installed(&key) {
         let pkg = reg.packages.get(&key).unwrap();
         println!(
@@ -29,24 +31,29 @@ pub async fn handle_install(package: &str, force: bool, config: &Config) -> Resu
     };
 
     let asset = select_best_asset(&release)?;
-    println!("Release: {}", release.tag_name);
-    println!("Asset:   {}", asset.name);
+
+    if !config.output.quiet {
+        println!("Release: {}", release.tag_name);
+        println!("Asset:   {}", asset.name);
+    }
 
     // Download to a temporary location
     let temp_dir = std::env::temp_dir().join(format!("gitclaw-{}-{}", owner, repo));
     std::fs::create_dir_all(&temp_dir)?;
     let download_path = temp_dir.join(&asset.name);
-    client.download_asset(asset, &download_path).await?;
+    client
+        .download_asset(asset, &download_path, config.download.show_progress)
+        .await?;
 
-    let install_dir = dirs::home_dir()
-        .ok_or_else(|| anyhow!("No home directory"))?
-        .join(".gitclaw")
-        .join("packages")
-        .join(&key);
-    fs::create_dir_all(&install_dir)?;
+    let pkg_install_dir = config.install_dir.join("packages").join(&key);
+    fs::create_dir_all(&pkg_install_dir)?;
 
-    extract_archive(&download_path, &install_dir)?;
-    let binary = find_binary(&install_dir, &repo)?;
+    extract_archive(
+        &download_path,
+        &pkg_install_dir,
+        config.download.prefer_strip,
+    )?;
+    let binary = find_binary(&pkg_install_dir, &repo)?;
 
     let pkg = InstalledPackage {
         name: key.clone(),
@@ -55,16 +62,19 @@ pub async fn handle_install(package: &str, force: bool, config: &Config) -> Resu
         version: release.tag_name.clone(),
         installed_at: chrono::Utc::now().to_rfc3339(),
         binary_path: binary.clone(),
-        install_dir: install_dir.clone(),
+        install_dir: pkg_install_dir.clone(),
         asset_name: asset.name.clone(),
     };
     reg.add(pkg);
     reg.save()?;
 
-    create_symlink(&binary, &repo)?;
+    let bin_dir = bin_dir_from(&config.install_dir);
+    create_symlink(&binary, &repo, &bin_dir)?;
 
-    println!("Installed {} -> {}", key, binary.display());
-    println!("   Run: ~/.gitclaw/bin/{} (add to $PATH)", repo);
+    if !config.output.quiet {
+        println!("Installed {} -> {}", key, binary.display());
+        println!("   Run: {}/{} (add to $PATH)", bin_dir.display(), repo);
+    }
     Ok(())
 }
 
@@ -78,32 +88,42 @@ pub async fn handle_update(package: Option<&str>, config: &Config) -> Result<()>
 async fn update_one(package: &str, config: &Config) -> Result<()> {
     let (owner, repo, _) = parse_package(package)?;
     let key = format!("{}/{}", owner, repo);
-    let reg = Registry::load()?;
+    let registry_path = registry_path_from(&config.install_dir);
+    let reg = Registry::load_from(&registry_path)?;
     if !reg.is_installed(&key) {
         bail!("{} not installed. Use 'gitclaw install' first.", key);
     }
     let installed = reg.packages.get(&key).unwrap();
-    println!("Checking {} (current: {})...", key, installed.version);
+    if !config.output.quiet {
+        println!("Checking {} (current: {})...", key, installed.version);
+    }
 
     let client = GithubClient::new(config.github_token.clone())?;
     let latest = client.get_release(&owner, &repo, "latest").await?;
 
     if latest.tag_name == installed.version {
-        println!("{} is up to date ({})", key, installed.version);
+        if !config.output.quiet {
+            println!("{} is up to date ({})", key, installed.version);
+        }
         return Ok(());
     }
-    println!(
-        "Update available: {} -> {}",
-        installed.version, latest.tag_name
-    );
-    crate::registry::uninstall(package)?;
+    if !config.output.quiet {
+        println!(
+            "Update available: {} -> {}",
+            installed.version, latest.tag_name
+        );
+    }
+    crate::registry::uninstall(package, &config.install_dir)?;
     handle_install(package, false, config).await
 }
 
 async fn update_all(config: &Config) -> Result<()> {
-    let reg = Registry::load()?;
+    let registry_path = registry_path_from(&config.install_dir);
+    let reg = Registry::load_from(&registry_path)?;
     if reg.packages.is_empty() {
-        println!("No packages installed.");
+        if !config.output.quiet {
+            println!("No packages installed.");
+        }
         return Ok(());
     }
     let names: Vec<String> = reg.packages.keys().cloned().collect();
@@ -121,7 +141,9 @@ async fn update_all(config: &Config) -> Result<()> {
             }
         }
     }
-    println!("\nDone: {} updated, {} current", updated, current);
+    if !config.output.quiet {
+        println!("\nDone: {} updated, {} current", updated, current);
+    }
     Ok(())
 }
 
@@ -200,10 +222,9 @@ fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
     bail!("No binary found in {}", dir.display())
 }
 
-fn create_symlink(binary: &Path, name: &str) -> Result<()> {
-    let dir = bin_dir()?;
-    fs::create_dir_all(&dir)?;
-    let link = dir.join(name);
+fn create_symlink(binary: &Path, name: &str, bin_dir: &Path) -> Result<()> {
+    fs::create_dir_all(bin_dir)?;
+    let link = bin_dir.join(name);
     if link.exists() || link.is_symlink() {
         fs::remove_file(&link)?;
     }

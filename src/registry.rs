@@ -1,8 +1,9 @@
+use crate::util::registry_path_from;
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::debug;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,10 +22,12 @@ pub struct InstalledPackage {
 pub struct Registry {
     #[serde(default)]
     pub packages: HashMap<String, InstalledPackage>,
+    #[serde(skip)]
+    path: PathBuf,
 }
 
 impl Registry {
-    fn path() -> Result<PathBuf> {
+    fn default_path() -> Result<PathBuf> {
         Ok(dirs::home_dir()
             .ok_or_else(|| anyhow!("No home directory"))?
             .join(".gitclaw")
@@ -32,22 +35,30 @@ impl Registry {
     }
 
     pub fn load() -> Result<Self> {
-        let p = Self::path()?;
-        if !p.exists() {
-            return Ok(Self::default());
+        let p = Self::default_path()?;
+        Self::load_from(&p)
+    }
+
+    pub fn load_from(path: &PathBuf) -> Result<Self> {
+        if !path.exists() {
+            return Ok(Self {
+                packages: HashMap::new(),
+                path: path.clone(),
+            });
         }
-        let s = fs::read_to_string(&p).context("Read registry")?;
-        toml::from_str(&s).context("Parse registry")
+        let s = fs::read_to_string(path).context("Read registry")?;
+        let mut reg: Registry = toml::from_str(&s).context("Parse registry")?;
+        reg.path = path.clone();
+        Ok(reg)
     }
 
     pub fn save(&self) -> Result<()> {
-        let p = Self::path()?;
-        if let Some(parent) = p.parent() {
+        if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
         let s = toml::to_string_pretty(self).context("Serialize registry")?;
-        fs::write(&p, s).context("Write registry")?;
-        debug!("Registry saved to {:?}", p);
+        fs::write(&self.path, s).context("Write registry")?;
+        debug!("Registry saved to {:?}", self.path);
         Ok(())
     }
 
@@ -64,12 +75,14 @@ impl Registry {
     }
 }
 
+#[allow(dead_code)]
 pub fn gitclaw_home() -> Result<PathBuf> {
     Ok(dirs::home_dir()
         .ok_or_else(|| anyhow!("No home directory"))?
         .join(".gitclaw"))
 }
 
+#[allow(dead_code)]
 pub fn bin_dir() -> Result<PathBuf> {
     Ok(gitclaw_home()?.join("bin"))
 }
@@ -102,10 +115,11 @@ pub fn list_installed(verbose: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn uninstall(package: &str) -> Result<()> {
+pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
     let (owner, repo, _) = crate::github::parse_package(package)?;
     let key = format!("{}/{}", owner, repo);
-    let mut reg = Registry::load()?;
+    let registry_path = registry_path_from(install_dir);
+    let mut reg = Registry::load_from(&registry_path)?;
     let pkg = reg
         .remove(&key)
         .ok_or_else(|| anyhow!("{} not installed", key))?;
@@ -113,7 +127,7 @@ pub fn uninstall(package: &str) -> Result<()> {
     if pkg.install_dir.exists() {
         fs::remove_dir_all(&pkg.install_dir).context("Remove install dir")?;
     }
-    let link = bin_dir()?.join(&repo);
+    let link = install_dir.join("bin").join(&repo);
     if link.exists() || link.is_symlink() {
         fs::remove_file(&link).context("Remove symlink")?;
     }
