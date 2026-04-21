@@ -42,7 +42,7 @@ fn create_test_zip(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::PathBuf
 #[test]
 fn test_extract_tar_gz() {
     let temp = TempDir::new().unwrap();
-    let files = vec![("file1.txt", b"Hello, World!"), ("file2.txt", b"Test data")];
+    let files: Vec<(&str, &[u8])> = vec![("file1.txt", b"Hello, World!" as &[u8]), ("file2.txt", b"Test data" as &[u8])];
     let archive_path = create_test_tar_gz(&temp, &files);
 
     let dest_dir = temp.path().join("extracted");
@@ -58,7 +58,7 @@ fn test_extract_tar_gz() {
 #[test]
 fn test_extract_zip() {
     let temp = TempDir::new().unwrap();
-    let files = vec![("file1.txt", b"Hello, World!"), ("file2.txt", b"Test data")];
+    let files: Vec<(&str, &[u8])> = vec![("file1.txt", b"Hello, World!" as &[u8]), ("file2.txt", b"Test data" as &[u8])];
     let archive_path = create_test_zip(&temp, &files);
 
     let dest_dir = temp.path().join("extracted");
@@ -93,7 +93,7 @@ fn test_extract_unknown_archive_type() {
 #[test]
 fn test_extract_dispatch_tar_gz() {
     let temp = TempDir::new().unwrap();
-    let files = vec![("test.txt", b"Dispatched from tar.gz!")];
+    let files: Vec<(&str, &[u8])> = vec![("test.txt", b"Dispatched from tar.gz!" as &[u8])];
     let archive_path = create_test_tar_gz(&temp, &files);
 
     let dest_dir = temp.path().join("extracted");
@@ -106,7 +106,7 @@ fn test_extract_dispatch_tar_gz() {
 #[test]
 fn test_extract_dispatch_zip() {
     let temp = TempDir::new().unwrap();
-    let files = vec![("test.txt", b"Dispatched from zip!")];
+    let files: Vec<(&str, &[u8])> = vec![("test.txt", b"Dispatched from zip!" as &[u8])];
     let archive_path = create_test_zip(&temp, &files);
 
     let dest_dir = temp.path().join("extracted");
