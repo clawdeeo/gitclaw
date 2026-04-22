@@ -2,21 +2,19 @@
 
 use colored::Colorize;
 
-/// ASCII art banner for gitclaw
-#[allow(dead_code)]
+/// ASCII art banner for gitclaw (simpler version without problematic backslash characters)
 pub const BANNER: &str = r#"
    ______   __    __  ________  __       __   ______   __    __ 
-  /      \ /  |  /  |/        |/  \     /  | /      \ /  |  /  |
- /$$$$$$  |$$ |  $$ |$$$$$$$$/ $$  \   /$$ |/$$$$$$  |$$ |  $$ |
- $$ |__$$ |$$ |  $$ |   $$ |   $$$  \ /$$$ |$$ |  $$/ $$ |  $$ |
- $$    $$ |$$ |  $$ |   $$ |   $$$$  /$$$$ |$$ |      $$ |  $$ |
- $$$$$$$$ |$$ |  $$ |   $$ |   $$ $$ $$/$$ |$$ |   __ $$ |  $$ |
- $$ |  $$ |$$ \__$$ |   $$ |   $$ |$$$/ $$ |$$ \__/  |$$ \__$$ |
- $$ |  $$ |$$    $$/    $$ |   $$ | $/  $$ |$$    $$/ $$    $$ |
- $$/   $$/  $$$$$$/     $$/    $$/      $$/  $$$$$$/   $$$$$$$ |
-                                                        /  \__$$ |
-                                                        $$    $$/
-                                                         $$$$$$/ 
+  /      | /  |  /  |/        |/  |     /  | /      | /  |  /  |
+ /$$$$$$  |$$ |  $$ |$$$$$$$$/ $$ |   /$$ |/$$$$$$  |$$ |  $$ |
+ $$ |__$$ |$$ |  $$ |   $$ |   $$ |  /$$$ |$$ |  $$/ $$ |  $$ |
+ $$    $$ |$$ |  $$ |   $$ |   $$ | /$$$$ |$$ |      $$ |  $$ |
+ $$$$$$$$ |$$ |  $$ |   $$ |   $$ |$$/$$ |$$ |   __ $$ |  $$ |
+ $$ |  $$ |$$ |__$$ |   $$ |   $$ |$$$/ $$ |$$ |__/  |$$ |__$$ |
+ $$ |  $$ |$$    $$/    $$ |   $$ | $/  $$ |$$    $$/ $$    $$/ 
+ $$/   $$/  $$$$$$/     $$/    $$/      $$/  $$$$$$/   $$$$$$$/  
+                                                         /  |___ 
+                                                        $$/      
 "#;
 
 /// Check if colors should be enabled
@@ -51,7 +49,7 @@ pub fn print_header(text: &str) {
 #[allow(dead_code)]
 pub fn print_success(text: &str) {
     if color_enabled() {
-        println!("{} {}", "✓".green().bold(), text);
+        println!("{} {}", "[OK]".green().bold(), text);
     } else {
         println!("[OK] {}", text);
     }
@@ -61,7 +59,7 @@ pub fn print_success(text: &str) {
 #[allow(dead_code)]
 pub fn print_error(text: &str) {
     if color_enabled() {
-        eprintln!("{} {}", "✗".red().bold(), text);
+        eprintln!("{} {}", "[ERR]".red().bold(), text);
     } else {
         eprintln!("[ERROR] {}", text);
     }
@@ -71,7 +69,7 @@ pub fn print_error(text: &str) {
 #[allow(dead_code)]
 pub fn print_info(text: &str) {
     if color_enabled() {
-        println!("{} {}", "ℹ".blue(), text);
+        println!("{} {}", "[INFO]".blue(), text);
     } else {
         println!("[INFO] {}", text);
     }
@@ -81,7 +79,7 @@ pub fn print_info(text: &str) {
 #[allow(dead_code)]
 pub fn print_warning(text: &str) {
     if color_enabled() {
-        println!("{} {}", "⚠".yellow(), text);
+        println!("{} {}", "[WARN]".yellow(), text);
     } else {
         println!("[WARN] {}", text);
     }
