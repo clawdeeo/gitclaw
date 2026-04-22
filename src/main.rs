@@ -95,7 +95,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
                 install::handle_install_multiple(&packages, force, dry_run, verify, &config).await?
             }
         }
-        Commands::List { verbose } => registry::list_installed(verbose)?,
+        Commands::List { verbose } => registry::list_installed(verbose, &config.install_dir)?,
         Commands::Update { package } => install::handle_update(package.as_deref(), &config).await?,
         Commands::Uninstall { package } => registry::uninstall(&package, &config.install_dir)?,
         Commands::Search { package, limit } => {
