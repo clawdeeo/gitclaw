@@ -394,13 +394,16 @@ pub fn find_matching_asset(
             }
         }
 
-        // Prefer archives over bare binaries (but still allow bare binaries)
-        if name_lower.ends_with(".tar.gz")
-            || name_lower.ends_with(".tgz")
-            || name_lower.ends_with(".tar.xz")
-            || name_lower.ends_with(".zip")
-        {
-            score += 5;
+        // Only consider archives if platform matched
+        if score >= 10 {
+            // Prefer archives over bare binaries (but still allow bare binaries)
+            if name_lower.ends_with(".tar.gz")
+                || name_lower.ends_with(".tgz")
+                || name_lower.ends_with(".tar.xz")
+                || name_lower.ends_with(".zip")
+            {
+                score += 5;
+            }
         }
 
         // Avoid checksum-like names
