@@ -85,7 +85,7 @@ pub async fn handle_install(
                 }
                 verify_file(&download_path, &expected, algo)?;
                 if !config.output.quiet {
-                    println!("Checksum verified");
+                    banner::print_success("Checksum verified");
                 }
             }
         } else if verify {
@@ -95,6 +95,10 @@ pub async fn handle_install(
 
     let pkg_install_dir = config.install_dir.join("packages").join(&key);
     fs::create_dir_all(&pkg_install_dir)?;
+
+    if !config.output.quiet {
+        banner::print_info(&format!("Extracting {}...", asset.name));
+    }
 
     extract_archive(
         &download_path,

@@ -145,7 +145,7 @@ pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
         fs::remove_file(&link).context("Remove symlink")?;
     }
     reg.save()?;
-    println!("Uninstalled {}", key);
+    banner::print_success(&format!("Uninstalled {}", key));
     Ok(())
 }
 
