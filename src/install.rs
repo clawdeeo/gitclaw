@@ -149,7 +149,11 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
     }
     let installed = reg.packages.get(&key).unwrap();
     if !config.output.quiet {
-        println!("Checking {} (current: {})...", key, installed.version);
+        banner::print_info(&format!(
+            "Checking {} (current: {})...",
+            key.dimmed(),
+            installed.version.dimmed()
+        ));
     }
 
     let client = GithubClient::new(config.github_token.clone())?;
@@ -157,15 +161,16 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
 
     if latest.tag_name == installed.version {
         if !config.output.quiet {
-            println!("{} is up to date ({})", key, installed.version);
+            banner::print_success(&format!("{} is up to date ({})", key, installed.version));
         }
         return Ok(());
     }
     if !config.output.quiet {
-        println!(
+        banner::print_info(&format!(
             "Update available: {} -> {}",
-            installed.version, latest.tag_name
-        );
+            installed.version.dimmed(),
+            latest.tag_name.green().bold()
+        ));
     }
     crate::registry::uninstall(package, &config.install_dir)?;
     handle_install(package, false, false, false, config).await
@@ -176,7 +181,7 @@ async fn update_all(config: &Config) -> Result<()> {
     let reg = Registry::load_from(&registry_path)?;
     if reg.packages.is_empty() {
         if !config.output.quiet {
-            println!("No packages installed.");
+            banner::print_info("No packages installed.");
         }
         return Ok(());
     }
@@ -196,7 +201,8 @@ async fn update_all(config: &Config) -> Result<()> {
         }
     }
     if !config.output.quiet {
-        println!("\nDone: {} updated, {} current", updated, current);
+        banner::print_separator();
+        banner::print_info(&format!("Done: {} updated, {} current", updated, current));
     }
     Ok(())
 }
