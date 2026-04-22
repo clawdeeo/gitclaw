@@ -71,6 +71,9 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
     match &cli.command {
         Commands::Install { .. }
         | Commands::List { .. }
+        | Commands::Update { .. }
+        | Commands::Uninstall { .. }
+        | Commands::Search { .. }
         | Commands::Platform { .. }
         | Commands::SelfUpdate { .. } => {
             banner::print_banner();
