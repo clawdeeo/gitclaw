@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-22
+
+### Fixed
+- Platform asset matching now correctly selects platform-specific assets (prevents Darwin assets on Linux)
+- Added Rust target triple aliases (x86_64-unknown-linux-musl, etc.) for ripgrep and other Rust projects
+- Symlinks in bin/ now use absolute paths (fixes execution from any directory)
+
 ## [0.3.0] - 2026-04-21
 
 ### Added
