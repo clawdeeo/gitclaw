@@ -10,10 +10,10 @@ jobs:
   Verify:
     uses: ./.github/workflows/verify.yml
 
-  Test:
-    needs: Verify
-    uses: ./.github/workflows/test.yml
-
   Build:
-    needs: Test
+    needs: Verify
     uses: ./.github/workflows/build.yml
+
+  Test:
+    needs: Build
+    uses: ./.github/workflows/test.yml

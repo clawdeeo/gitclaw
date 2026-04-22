@@ -4,6 +4,8 @@
 
 Install software directly from GitHub releases.
 
+**Also available as `gcw`** - a shorter alias for the same tool.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -89,14 +91,27 @@ gitclaw completions zsh > /usr/local/share/zsh/site-functions/_gitclaw
 gitclaw completions fish > ~/.config/fish/completions/gitclaw.fish
 ```
 
+### Run a package
+
+```bash
+# Run an installed package
+gitclaw run ripgrep -- --version
+
+# Or use the shorter alias
+gcw run fd -- --help
+
+# Can also use owner/repo format
+gitclaw run BurntSushi/ripgrep -- --version
+```
+
 ### Update gitclaw itself
 
 ```bash
 # Check for updates
-gitclaw self-update --check
+gitclaw self --check
 
 # Update to latest version
-gitclaw self-update
+gitclaw self
 ```
 
 ### Search for releases

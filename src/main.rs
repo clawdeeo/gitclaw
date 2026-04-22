@@ -5,6 +5,7 @@ mod banner;
 mod checksum;
 mod cli;
 mod config;
+mod extract;
 mod github;
 mod install;
 mod platform;
@@ -12,11 +13,11 @@ mod registry;
 mod self_update;
 mod util;
 
-// Extract module as a directory
-mod extract;
-
+use anyhow::bail;
 use cli::{Cli, Commands};
 use config::Config;
+use registry::Registry;
+use util::registry_path_from;
 
 #[tokio::main]
 async fn main() {
@@ -34,7 +35,6 @@ async fn main() {
 
     let cli = Cli::parse();
 
-    // Load configuration and merge with CLI args
     let config = match Config::load() {
         Ok(cfg) => cfg,
         Err(e) => {
@@ -43,7 +43,6 @@ async fn main() {
         }
     };
 
-    // Apply CLI overrides to config
     let config = apply_cli_overrides(config, &cli);
 
     if let Err(e) = run(cli, config).await {
@@ -52,9 +51,7 @@ async fn main() {
     }
 }
 
-/// Apply CLI argument overrides to the loaded config
 fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
-    // CLI token takes precedence over config file
     if cli.token.is_some() {
         config.github_token = cli.token.clone();
     }
@@ -62,19 +59,22 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 }
 
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
-    // Show banner for certain commands
+    // Show banner only on help (no subcommand)
+    // Show version line for actual commands
     match &cli.command {
+        Commands::Completions { .. } => {
+            // No banner for completions
+        }
         Commands::Install { .. }
         | Commands::List { .. }
         | Commands::Update { .. }
         | Commands::Uninstall { .. }
         | Commands::Search { .. }
         | Commands::Platform { .. }
-        | Commands::SelfUpdate { .. } => {
-            banner::print_banner();
-            banner::print_tagline();
+        | Commands::SelfUpdate { .. }
+        | Commands::Run { .. } => {
+            banner::print_version_line();
         }
-        _ => {}
     }
 
     match cli.command {
@@ -103,7 +103,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         }
         Commands::Platform {} => {
             banner::print_output_header();
-            let arch = gitclaw::platform::current_platform();
+            let arch = platform::current_platform();
             println!("Detected platform: linux {}", arch);
             println!("Compiled for: Linux");
             println!("Architecture aliases: {:?}", arch.aliases());
@@ -115,6 +115,62 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
                 self_update::perform_update(&config).await?
             }
         }
+        Commands::Run { package, args } => run_package(&package, args, &config).await?,
+    }
+
+    Ok(())
+}
+
+async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyhow::Result<()> {
+    let (owner, repo) = if package.contains('/') {
+        let parts: Vec<&str> = package.split('/').collect();
+        if parts.len() != 2 {
+            bail!("Invalid package format. Use 'owner/repo' or just 'repo'.");
+        }
+        (parts[0].to_string(), parts[1].to_string())
+    } else {
+        // If no owner specified, search in registry
+        let registry_path = registry_path_from(&config.install_dir);
+        let reg = Registry::load_from(&registry_path)?;
+
+        // Find package by repo name
+        let matches: Vec<_> = reg
+            .packages
+            .values()
+            .filter(|p| p.repo == package)
+            .collect();
+
+        match matches.len() {
+            0 => bail!(
+                "Package '{}' not installed. Use 'gitclaw install owner/{}' first.",
+                package,
+                package
+            ),
+            1 => (matches[0].owner.clone(), matches[0].repo.clone()),
+            _ => bail!(
+                "Multiple packages named '{}'. Use full name (owner/repo).",
+                package
+            ),
+        }
+    };
+
+    let binary_path = config.install_dir.join("bin").join(&repo);
+
+    if !binary_path.exists() {
+        bail!(
+            "Binary for '{}/{}' not found at {}",
+            owner,
+            repo,
+            binary_path.display()
+        );
+    }
+
+    // Execute the binary with provided args
+    use std::process::Command;
+    let status = Command::new(&binary_path).args(args).status()?;
+
+    if !status.success() {
+        bail!("Process exited with code: {:?}", status.code());
     }
 
     Ok(())

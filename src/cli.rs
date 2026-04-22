@@ -77,10 +77,18 @@ pub enum Commands {
     #[command(about = "Show platform information")]
     Platform {},
     /// Update gitclaw itself
-    #[command(about = "Update gitclaw to the latest version")]
+    #[command(name = "self", about = "Update gitclaw to the latest version")]
     SelfUpdate {
         /// Only check for updates, don't install
         #[arg(long, help = "Only check for updates, don't install")]
         check: bool,
+    },
+    /// Run an installed package
+    #[command(about = "Run an installed package")]
+    Run {
+        #[arg(help = "Package to run (format: owner/repo)")]
+        package: String,
+        #[arg(trailing_var_arg = true, help = "Arguments to pass to the package")]
+        args: Vec<String>,
     },
 }
