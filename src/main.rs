@@ -77,6 +77,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         | Commands::Platform { .. }
         | Commands::SelfUpdate { .. } => {
             banner::print_banner();
+            banner::print_tagline();
         }
         _ => {}
     }
@@ -106,6 +107,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             generate(shell, &mut cmd, name, &mut std::io::stdout());
         }
         Commands::Platform {} => {
+            banner::print_output_header();
             let (os, arch) = gitclaw::platform::current_platform()?;
             println!("Detected platform: {} {}", os, arch);
             #[cfg(target_os = "macos")]
