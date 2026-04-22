@@ -182,13 +182,16 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<Vec<u8>> {
         let name_bytes = &name_field[0..name_end];
         let name = std::str::from_utf8(name_bytes).unwrap_or("").to_string();
 
-        let size_field = &header[48..58];
-        let size_end = size_field
-            .iter()
-            .rposition(|&b| b != b' ')
-            .unwrap_or(size_field.len());
-        let size_str = std::str::from_utf8(&size_field[0..size_end]).unwrap_or("0");
-        let size: usize = size_str.parse().unwrap_or(0);
+        // Try 10-byte size field (GNU ar) first, fallback to 8-byte (BSD ar)
+        // GNU: bytes 48-57, BSD: bytes 48-55 with magic at 56-57
+        let size_10 = std::str::from_utf8(&header[48..58]).unwrap_or("0").trim();
+        let size_8 = std::str::from_utf8(&header[48..56]).unwrap_or("0").trim();
+
+        let size: usize = size_10
+            .parse()
+            .ok()
+            .or_else(|| size_8.parse().ok())
+            .unwrap_or(0);
 
         if size == 0 || offset + size > deb_content.len() {
             if offset >= deb_content.len() {
