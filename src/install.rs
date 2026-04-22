@@ -109,7 +109,8 @@ pub async fn handle_install(
     reg.save()?;
 
     let bin_dir = bin_dir_from(&config.install_dir);
-    create_symlink(&binary, &repo, &bin_dir)?;
+    let binary_absolute = std::fs::canonicalize(&binary)?;
+    create_symlink(&binary_absolute, &repo, &bin_dir)?;
 
     if !config.output.quiet {
         println!("Installed {} -> {}", key, binary.display());
