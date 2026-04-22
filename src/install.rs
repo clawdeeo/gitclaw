@@ -237,17 +237,10 @@ fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
         if stem != repo_name {
             continue;
         }
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if fs::metadata(entry.path())
-                .map(|m| m.permissions().mode() & 0o111 != 0)
-                .unwrap_or(false)
-            {
-                return Ok(entry.path().to_path_buf());
-            }
-        }
-        #[cfg(windows)]
+        use std::os::unix::fs::PermissionsExt;
+        if fs::metadata(entry.path())
+            .map(|m| m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
         {
             return Ok(entry.path().to_path_buf());
         }
@@ -257,26 +250,12 @@ fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
         if !entry.file_type().is_file() {
             continue;
         }
-        #[cfg(unix)]
+        use std::os::unix::fs::PermissionsExt;
+        if fs::metadata(entry.path())
+            .map(|m| m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
         {
-            use std::os::unix::fs::PermissionsExt;
-            if fs::metadata(entry.path())
-                .map(|m| m.permissions().mode() & 0o111 != 0)
-                .unwrap_or(false)
-            {
-                return Ok(entry.path().to_path_buf());
-            }
-        }
-        #[cfg(windows)]
-        {
-            if entry
-                .path()
-                .extension()
-                .map(|e| e == "exe")
-                .unwrap_or(false)
-            {
-                return Ok(entry.path().to_path_buf());
-            }
+            return Ok(entry.path().to_path_buf());
         }
     }
     bail!("No binary found in {}", dir.display())
@@ -288,14 +267,7 @@ fn create_symlink(binary: &Path, name: &str, bin_dir: &Path) -> Result<()> {
     if link.exists() || link.is_symlink() {
         fs::remove_file(&link)?;
     }
-    #[cfg(unix)]
-    {
-        std::os::unix::fs::symlink(binary, &link)?;
-    }
-    #[cfg(windows)]
-    {
-        fs::copy(binary, &link)?;
-    }
+    std::os::unix::fs::symlink(binary, &link)?;
     Ok(())
 }
 

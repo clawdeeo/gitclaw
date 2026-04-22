@@ -1,21 +1,13 @@
+//! Platform detection for Linux only
+
 #![allow(dead_code)]
-#![allow(clippy::enum_variant_names)]
 
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum PlatformError {
-    #[error("Unsupported OS: {0}")]
-    UnsupportedOS(String),
-    #[error("Unsupported arch: {0}")]
+    #[error("Unsupported architecture: {0}")]
     UnsupportedArch(String),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum OS {
-    Linux,
-    MacOS,
-    Windows,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,39 +16,11 @@ pub enum Arch {
     Aarch64,
 }
 
-impl std::fmt::Display for OS {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OS::Linux => write!(f, "linux"),
-            OS::MacOS => write!(f, "macos"),
-            OS::Windows => write!(f, "windows"),
-        }
-    }
-}
-
 impl std::fmt::Display for Arch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Arch::X86_64 => write!(f, "x86_64"),
             Arch::Aarch64 => write!(f, "aarch64"),
-        }
-    }
-}
-
-impl OS {
-    pub fn aliases(&self) -> &[&'static str] {
-        match self {
-            OS::Linux => &["linux"],
-            OS::MacOS => &["darwin", "macos", "osx"],
-            OS::Windows => &["windows", "win"],
-        }
-    }
-
-    pub fn extensions(&self) -> &[&'static str] {
-        match self {
-            OS::Linux => &[".tar.gz", ".tar.xz", ".tar.bz2", ".tgz", ".zip"],
-            OS::MacOS => &[".tar.gz", ".tgz", ".zip", ".dmg"],
-            OS::Windows => &[".zip", ".exe", ".msi"],
         }
     }
 }
@@ -70,15 +34,6 @@ impl Arch {
     }
 }
 
-pub fn detect_os() -> Result<OS, PlatformError> {
-    match std::env::consts::OS {
-        "linux" => Ok(OS::Linux),
-        "macos" => Ok(OS::MacOS),
-        "windows" => Ok(OS::Windows),
-        other => Err(PlatformError::UnsupportedOS(other.to_string())),
-    }
-}
-
 pub fn detect_arch() -> Result<Arch, PlatformError> {
     match std::env::consts::ARCH {
         "x86_64" => Ok(Arch::X86_64),
@@ -87,62 +42,16 @@ pub fn detect_arch() -> Result<Arch, PlatformError> {
     }
 }
 
-pub fn current_platform() -> Result<(OS, Arch), PlatformError> {
-    Ok((detect_os()?, detect_arch()?))
+pub fn current_platform() -> Arch {
+    detect_arch().expect("Linux x86_64 or aarch64 required")
 }
 
-/// Check if the binary's compile target matches runtime platform
-/// This catches cross-compiled binaries run under emulation
-pub fn check_target_mismatch() -> Option<String> {
-    // Use conditional compilation to detect the compiled target
-    let compiled_for_macos = cfg!(target_os = "macos");
-    let compiled_for_linux = cfg!(target_os = "linux");
-    let compiled_for_windows = cfg!(target_os = "windows");
-
-    let runtime_os = std::env::consts::OS;
-
-    // If compiled for macOS but running on Linux (e.g., under Rosetta or emulation)
-    if compiled_for_macos && runtime_os == "linux" {
-        return Some(
-            "Warning: This gitclaw binary was compiled for macOS but is running on Linux.\n\
-             This will cause incorrect package selection.\n\
-             Please install the Linux version or build from source: cargo install --path ."
-                .to_string(),
-        );
-    }
-
-    // If compiled for Linux but running on macOS
-    if compiled_for_linux && runtime_os == "macos" {
-        return Some(
-            "Warning: This gitclaw binary was compiled for Linux but is running on macOS.\n\
-             This will cause incorrect package selection.\n\
-             Please install the macOS version or build from source: cargo install --path ."
-                .to_string(),
-        );
-    }
-
-    // If compiled for Windows but running on Unix
-    if compiled_for_windows && (runtime_os == "linux" || runtime_os == "macos") {
-        return Some(
-            "Warning: This gitclaw binary was compiled for Windows but is running on a Unix system.\n\
-             This will cause incorrect package selection.\n\
-             Please install the correct version for your OS."
-                .to_string(),
-        );
-    }
-
-    None
-}
-
-pub fn score_asset(name: &str, os: OS, arch: Arch) -> i32 {
+pub fn score_asset(name: &str, arch: Arch) -> i32 {
     let lower = name.to_lowercase();
     let mut score = 0;
 
-    for alias in os.aliases() {
-        if lower.contains(alias) {
-            score += 10;
-            break;
-        }
+    if lower.contains("linux") {
+        score += 10;
     }
 
     for alias in arch.aliases() {
@@ -152,24 +61,15 @@ pub fn score_asset(name: &str, os: OS, arch: Arch) -> i32 {
         }
     }
 
-    for ext in os.extensions() {
-        if lower.ends_with(ext) {
-            let bonus = if (matches!(os, OS::Linux | OS::MacOS) && ext.starts_with(".tar"))
-                || (matches!(os, OS::Windows) && *ext == ".zip")
-            {
-                5
-            } else {
-                2
-            };
-            score += bonus;
-            break;
-        }
+    if lower.ends_with(".tar.gz") || lower.ends_with(".tar.xz") || lower.ends_with(".tgz") {
+        score += 5;
     }
 
     if lower.contains("checksum")
         || lower.contains("sha256")
         || lower.contains(".asc")
         || lower.contains(".sig")
+        || lower.contains(".sha")
     {
         score -= 50;
     }
@@ -177,10 +77,10 @@ pub fn score_asset(name: &str, os: OS, arch: Arch) -> i32 {
     score
 }
 
-pub fn find_best_asset<'a>(assets: &[&'a str], os: OS, arch: Arch) -> Option<&'a str> {
+pub fn find_best_asset<'a>(assets: &[&'a str], arch: Arch) -> Option<&'a str> {
     assets
         .iter()
-        .map(|&n| (n, score_asset(n, os, arch)))
+        .map(|&n| (n, score_asset(n, arch)))
         .filter(|(_, s)| *s > 0)
         .max_by_key(|(_, s)| *s)
         .map(|(n, _)| n)
@@ -191,34 +91,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_detect_platform() {
-        let (os, arch) = current_platform().unwrap();
-        let _ = format!("{} {}", os, arch);
+    fn test_detect_arch() {
+        let arch = detect_arch().unwrap();
+        let _ = format!("{}", arch);
     }
 
     #[test]
     fn test_score_linux_x86_64() {
-        assert!(score_asset("tool-linux-x86_64.tar.gz", OS::Linux, Arch::X86_64) > 0);
-        assert!(score_asset("tool-linux-amd64.tar.gz", OS::Linux, Arch::X86_64) > 0);
-        assert!(score_asset("checksums.txt", OS::Linux, Arch::X86_64) < 0);
+        assert!(score_asset("tool-linux-x86_64.tar.gz", Arch::X86_64) > 0);
+        assert!(score_asset("tool-linux-amd64.tar.gz", Arch::X86_64) > 0);
+        assert!(score_asset("checksums.txt", Arch::X86_64) < 0);
     }
 
     #[test]
     fn test_find_best_asset() {
         let assets = vec![
-            "app-darwin-arm64.tar.gz",
             "app-linux-x86_64.tar.gz",
-            "app-windows-x86_64.zip",
+            "app-linux-aarch64.tar.gz",
+            "app-darwin-arm64.tar.gz",
             "checksums.txt",
         ];
-        let refs: Vec<&str> = assets.iter().map(|s| *s).collect();
         assert_eq!(
-            find_best_asset(&refs, OS::Linux, Arch::X86_64),
+            find_best_asset(&assets, Arch::X86_64),
             Some("app-linux-x86_64.tar.gz")
         );
         assert_eq!(
-            find_best_asset(&refs, OS::MacOS, Arch::Aarch64),
-            Some("app-darwin-arm64.tar.gz")
+            find_best_asset(&assets, Arch::Aarch64),
+            Some("app-linux-aarch64.tar.gz")
         );
     }
 }

@@ -59,15 +59,11 @@ pub struct Asset {
     pub size: u64,
 }
 
-/// Platform specification for asset matching
+/// Platform specification for asset matching (Linux only)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Platform {
     LinuxX86_64,
     LinuxAarch64,
-    DarwinX86_64,
-    DarwinAarch64,
-    WindowsX86_64,
-    WindowsAarch64,
 }
 
 impl std::fmt::Display for Platform {
@@ -75,10 +71,6 @@ impl std::fmt::Display for Platform {
         match self {
             Platform::LinuxX86_64 => write!(f, "linux-x86_64"),
             Platform::LinuxAarch64 => write!(f, "linux-aarch64"),
-            Platform::DarwinX86_64 => write!(f, "darwin-x86_64"),
-            Platform::DarwinAarch64 => write!(f, "darwin-aarch64"),
-            Platform::WindowsX86_64 => write!(f, "windows-x86_64"),
-            Platform::WindowsAarch64 => write!(f, "windows-aarch64"),
         }
     }
 }
@@ -100,51 +92,21 @@ impl Platform {
                 "aarch64-unknown-linux-gnu",
                 "aarch64-unknown-linux-musl",
             ],
-            Platform::DarwinX86_64 => &[
-                "darwin-x86_64",
-                "darwin-amd64",
-                "darwin-x64",
-                "macos-x86_64",
-                "osx-x86_64",
-                "x86_64-apple-darwin",
-            ],
-            Platform::DarwinAarch64 => &[
-                "darwin-aarch64",
-                "darwin-arm64",
-                "macos-aarch64",
-                "macos-arm64",
-                "osx-arm64",
-                "aarch64-apple-darwin",
-            ],
-            Platform::WindowsX86_64 => &[
-                "windows-x86_64",
-                "windows-amd64",
-                "windows-x64",
-                "win-x86_64",
-                "win-amd64",
-                "x86_64-pc-windows-msvc",
-                "x86_64-pc-windows-gnu",
-            ],
-            Platform::WindowsAarch64 => &[
-                "windows-aarch64",
-                "windows-arm64",
-                "win-aarch64",
-                "win-arm64",
-                "aarch64-pc-windows-msvc",
-            ],
         }
+    }
+
+    /// Get supported archive extensions
+    #[allow(dead_code)]
+    fn extensions(&self) -> &[&'static str] {
+        &[".tar.gz", ".tar.xz", ".tar.bz2", ".tgz", ".zip"]
     }
 
     /// Detect the current platform
     pub fn current() -> Result<Self> {
-        match (std::env::consts::OS, std::env::consts::ARCH) {
-            ("linux", "x86_64") => Ok(Platform::LinuxX86_64),
-            ("linux", "aarch64") => Ok(Platform::LinuxAarch64),
-            ("macos", "x86_64") => Ok(Platform::DarwinX86_64),
-            ("macos", "aarch64") | ("macos", "arm64") => Ok(Platform::DarwinAarch64),
-            ("windows", "x86_64") => Ok(Platform::WindowsX86_64),
-            ("windows", "aarch64") | ("windows", "arm64") => Ok(Platform::WindowsAarch64),
-            (os, arch) => bail!("Unsupported platform: {}-{}", os, arch),
+        match std::env::consts::ARCH {
+            "x86_64" => Ok(Platform::LinuxX86_64),
+            "aarch64" | "arm64" => Ok(Platform::LinuxAarch64),
+            arch => bail!("Unsupported architecture: {}", arch),
         }
     }
 }
@@ -404,7 +366,7 @@ pub fn find_matching_asset(
         let name_lower = asset.name.to_lowercase();
         let mut score = 0;
 
-        // Check platform aliases
+        // Check platform aliases (specific arch match = +10)
         for alias in aliases {
             if name_lower.contains(alias) {
                 score += 10;
@@ -412,15 +374,29 @@ pub fn find_matching_asset(
             }
         }
 
+        // Generic "linux" match (no arch specified) = +5
+        if score == 0 && name_lower.contains("linux") {
+            score += 5;
+        }
+
         // Only consider archives if platform matched
-        if score >= 10 {
-            // Prefer archives over bare binaries (but still allow bare binaries)
+        if score >= 5 {
+            // Prefer archives over bare binaries
             if name_lower.ends_with(".tar.gz")
                 || name_lower.ends_with(".tgz")
                 || name_lower.ends_with(".tar.xz")
+                || name_lower.ends_with(".tar.bz2")
                 || name_lower.ends_with(".zip")
+                || name_lower.ends_with(".appimage")
+                || name_lower.ends_with(".deb")
+                || name_lower.ends_with(".rpm")
+                || name_lower.ends_with(".tar")
             {
                 score += 5;
+            }
+            // Shell scripts get small bonus
+            if name_lower.ends_with(".sh") {
+                score += 2;
             }
         }
 
@@ -598,8 +574,8 @@ mod tests {
                 },
                 Asset {
                     id: 2,
-                    name: "app-darwin-arm64.tar.gz".to_string(),
-                    browser_download_url: "https://example.com/darwin".to_string(),
+                    name: "app-linux-aarch64.tar.gz".to_string(),
+                    browser_download_url: "https://example.com/aarch64".to_string(),
                     size: 1000,
                 },
                 Asset {
@@ -614,8 +590,110 @@ mod tests {
         let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
         assert_eq!(asset.name, "app-linux-x86_64.tar.gz");
 
-        let asset = find_matching_asset(&release, Platform::DarwinAarch64).unwrap();
-        assert_eq!(asset.name, "app-darwin-arm64.tar.gz");
+        let asset = find_matching_asset(&release, Platform::LinuxAarch64).unwrap();
+        assert_eq!(asset.name, "app-linux-aarch64.tar.gz");
+    }
+
+    #[test]
+    fn test_find_matching_asset_generic_linux() {
+        // Test generic "linux" assets (no arch specified)
+        let release = Release {
+            tag_name: "v1.0.0".to_string(),
+            name: None,
+            body: None,
+            assets: vec![Asset {
+                id: 1,
+                name: "app-linux.tar.gz".to_string(),
+                browser_download_url: "https://example.com/linux".to_string(),
+                size: 1000,
+            }],
+        };
+
+        // Generic linux should match both x86_64 and aarch64 (lower priority)
+        let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+        assert_eq!(asset.name, "app-linux.tar.gz");
+
+        let asset = find_matching_asset(&release, Platform::LinuxAarch64).unwrap();
+        assert_eq!(asset.name, "app-linux.tar.gz");
+    }
+
+    #[test]
+    fn test_find_matching_asset_deb_rpm() {
+        // Test .deb and .rpm packages
+        let release = Release {
+            tag_name: "v1.0.0".to_string(),
+            name: None,
+            body: None,
+            assets: vec![
+                Asset {
+                    id: 1,
+                    name: "app_1.0.0_linux_amd64.deb".to_string(),
+                    browser_download_url: "https://example.com/deb".to_string(),
+                    size: 1000,
+                },
+                Asset {
+                    id: 2,
+                    name: "app-1.0.0-linux-x86_64.rpm".to_string(),
+                    browser_download_url: "https://example.com/rpm".to_string(),
+                    size: 1000,
+                },
+            ],
+        };
+
+        let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+        // Should prefer .deb or .rpm with archive bonus
+        assert!(asset.name.ends_with(".deb") || asset.name.ends_with(".rpm"));
+    }
+
+    #[test]
+    fn test_find_matching_asset_shell_script() {
+        // Test .sh shell scripts get small bonus
+        let release = Release {
+            tag_name: "v1.0.0".to_string(),
+            name: None,
+            body: None,
+            assets: vec![Asset {
+                id: 1,
+                name: "install-linux-x86_64.sh".to_string(),
+                browser_download_url: "https://example.com/sh".to_string(),
+                size: 1000,
+            }],
+        };
+
+        let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+        assert_eq!(asset.name, "install-linux-x86_64.sh");
+    }
+
+    #[test]
+    fn test_find_matching_asset_prefers_specific_arch() {
+        // When specific arch is available, prefer it over generic
+        let release = Release {
+            tag_name: "v1.0.0".to_string(),
+            name: None,
+            body: None,
+            assets: vec![
+                Asset {
+                    id: 1,
+                    name: "app-linux.tar.gz".to_string(),
+                    browser_download_url: "https://example.com/generic".to_string(),
+                    size: 1000,
+                },
+                Asset {
+                    id: 2,
+                    name: "app-linux-x86_64.tar.gz".to_string(),
+                    browser_download_url: "https://example.com/specific".to_string(),
+                    size: 1000,
+                },
+            ],
+        };
+
+        // Should prefer the x86_64 specific asset
+        let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+        assert_eq!(asset.name, "app-linux-x86_64.tar.gz");
+
+        // aarch64 should fall back to generic
+        let asset = find_matching_asset(&release, Platform::LinuxAarch64).unwrap();
+        assert_eq!(asset.name, "app-linux.tar.gz");
     }
 
     #[test]
