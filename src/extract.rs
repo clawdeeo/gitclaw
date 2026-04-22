@@ -124,7 +124,8 @@ pub fn extract_tar_zst(archive_path: &Path, dest_dir: &Path) -> Result<()> {
     fs::create_dir_all(dest_dir)?;
 
     let file = fs::File::open(archive_path)?;
-    let dec = zstd::Decoder::new(file)?;
+    let reader = io::BufReader::new(file);
+    let dec = zstd::stream::read::Decoder::new(reader)?;
     let mut archive = tar::Archive::new(dec);
     archive.unpack(dest_dir)?;
 
@@ -148,10 +149,10 @@ pub fn extract_deb(archive_path: &Path, dest_dir: &Path) -> Result<()> {
     fs::create_dir_all(dest_dir)?;
 
     let deb_content = fs::read(archive_path)?;
-    let data_tar = extract_data_tar_from_deb(&deb_content)?;
+    let (data_tar, tar_name) = extract_data_tar_from_deb(&deb_content)?;
 
     let temp_dir = tempfile::tempdir()?;
-    let data_tar_path = temp_dir.path().join("data.tar");
+    let data_tar_path = temp_dir.path().join(tar_name);
     fs::write(&data_tar_path, data_tar)?;
 
     extract_tar_auto(&data_tar_path, dest_dir)?;
@@ -159,7 +160,7 @@ pub fn extract_deb(archive_path: &Path, dest_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<Vec<u8>> {
+fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<(Vec<u8>, String)> {
     #[allow(clippy::byte_char_slices)]
     const AR_MAGIC: &[u8] = &[b'!', b'<', b'a', b'r', b'c', b'h', b'>', b'\n'];
     if deb_content.len() < AR_MAGIC.len() || &deb_content[0..AR_MAGIC.len()] != AR_MAGIC {
@@ -207,7 +208,7 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<Vec<u8>> {
             || name == "data.tar"
         {
             let data = deb_content[offset..offset + size].to_vec();
-            return Ok(data);
+            return Ok((data, name));
         }
 
         offset += size;
