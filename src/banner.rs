@@ -44,18 +44,18 @@ fn color_enabled() -> bool {
     std::env::var("NO_COLOR").is_err() && atty::is(atty::Stream::Stdout)
 }
 
-/// Print the banner (white/colorless)
-pub fn print_banner() {
-    println!("{}", BANNER);
-}
-
-/// Print a random tagline
-pub fn print_tagline() {
+/// Print version line with tagline (for non-help commands)
+pub fn print_version_line() {
+    let version = env!("CARGO_PKG_VERSION");
     let tagline = TAGLINES.choose(&mut rand::thread_rng()).unwrap();
     if color_enabled() {
-        println!("{}", tagline.dimmed());
+        println!(
+            "{} {}",
+            format!("gitclaw v{}", version).cyan().bold(),
+            format!("({})", tagline).dimmed()
+        );
     } else {
-        println!("{}", tagline);
+        println!("gitclaw v{} ({})", version, tagline);
     }
     println!();
 }
@@ -72,7 +72,6 @@ pub fn print_output_header() {
 }
 
 /// Print a styled header
-#[allow(dead_code)]
 pub fn print_header(text: &str) {
     if color_enabled() {
         println!();
@@ -86,7 +85,6 @@ pub fn print_header(text: &str) {
 }
 
 /// Print success message
-#[allow(dead_code)]
 pub fn print_success(text: &str) {
     if color_enabled() {
         println!("{} {}", "[OK]".green().bold(), text);
@@ -95,18 +93,7 @@ pub fn print_success(text: &str) {
     }
 }
 
-/// Print error message
-#[allow(dead_code)]
-pub fn print_error(text: &str) {
-    if color_enabled() {
-        eprintln!("{} {}", "[ERR]".red().bold(), text);
-    } else {
-        eprintln!("[ERROR] {}", text);
-    }
-}
-
 /// Print info message
-#[allow(dead_code)]
 pub fn print_info(text: &str) {
     if color_enabled() {
         println!("{} {}", "[INFO]".blue(), text);
@@ -115,18 +102,7 @@ pub fn print_info(text: &str) {
     }
 }
 
-/// Print warning message
-#[allow(dead_code)]
-pub fn print_warning(text: &str) {
-    if color_enabled() {
-        println!("{} {}", "[WARN]".yellow(), text);
-    } else {
-        println!("[WARN] {}", text);
-    }
-}
-
 /// Print a key-value pair with aligned keys
-#[allow(dead_code)]
 pub fn print_kv(key: &str, value: &str) {
     if color_enabled() {
         println!("  {} {}", format!("{:20}", key).dimmed(), value);
@@ -136,7 +112,6 @@ pub fn print_kv(key: &str, value: &str) {
 }
 
 /// Print a separator line
-#[allow(dead_code)]
 pub fn print_separator() {
     if color_enabled() {
         println!("{}", "─".repeat(60).dimmed());
@@ -146,7 +121,6 @@ pub fn print_separator() {
 }
 
 /// Print install complete message
-#[allow(dead_code)]
 pub fn print_install_complete(name: &str, binary_path: &str) {
     if color_enabled() {
         print_success(&format!("Installed {}", name.green().bold()));
