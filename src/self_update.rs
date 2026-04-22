@@ -1,7 +1,9 @@
 use anyhow::{anyhow, bail, Context, Result};
+use colored::Colorize;
 use std::env;
 use std::path::PathBuf;
 
+use crate::banner;
 use crate::config::Config;
 use crate::extract::extract_archive;
 use crate::github::{find_matching_asset, GithubClient, Platform};
@@ -27,14 +29,19 @@ pub async fn check_for_update(config: &Config) -> Result<()> {
     let current = current_version();
     let latest = release.tag_name.trim_start_matches('v').to_string();
 
-    println!("Current version: {}", current);
-    println!("Latest version:  {}", latest);
+    banner::print_header("Self Update");
+    banner::print_kv("Current version", &current);
+    banner::print_kv("Latest version", &latest);
 
     if latest == current {
-        println!("gitclaw is up to date!");
+        banner::print_success("gitclaw is up to date!");
     } else {
-        println!("Update available: {} -> {}", current, latest);
-        println!("Run 'gitclaw self-update' to install");
+        banner::print_info(&format!(
+            "Update available: {} -> {}",
+            current.dimmed(),
+            latest.green().bold()
+        ));
+        banner::print_info("Run 'gitclaw self-update' to install");
     }
 
     Ok(())
@@ -49,11 +56,19 @@ pub async fn perform_update(config: &Config) -> Result<()> {
     let latest = release.tag_name.trim_start_matches('v').to_string();
 
     if latest == current {
-        println!("gitclaw is already at the latest version ({})", current);
+        banner::print_success(&format!(
+            "gitclaw is already at the latest version ({})",
+            current
+        ));
         return Ok(());
     }
 
-    println!("Updating gitclaw: {} -> {}", current, latest);
+    banner::print_header("Self Update");
+    banner::print_info(&format!(
+        "Updating: {} -> {}",
+        current.dimmed(),
+        latest.green().bold()
+    ));
 
     // Find matching asset for current platform
     let platform = Platform::current()?;
@@ -61,7 +76,7 @@ pub async fn perform_update(config: &Config) -> Result<()> {
         .map_err(|_| anyhow!("No suitable asset found for platform: {}", platform))?;
 
     if !config.output.quiet {
-        println!("Downloading: {}", asset.name);
+        banner::print_info(&format!("Downloading: {}", asset.name.dimmed()));
     }
 
     // Download to temp location
@@ -82,6 +97,7 @@ pub async fn perform_update(config: &Config) -> Result<()> {
         || asset.name.ends_with(".tar.xz")
     {
         let extract_dir = temp_dir.join("extracted");
+        banner::print_info("Extracting...");
         extract_archive(&download_path, &extract_dir, true)?;
         let new_binary = find_binary(&extract_dir, REPO_NAME)?;
         replace_binary(&new_binary, &current_exe)?;
@@ -89,7 +105,10 @@ pub async fn perform_update(config: &Config) -> Result<()> {
         replace_binary(&download_path, &current_exe)?;
     }
     let _ = std::fs::remove_dir_all(&temp_dir);
-    println!("gitclaw updated successfully to {}", latest);
+    banner::print_success(&format!(
+        "gitclaw updated successfully to {}",
+        latest.green().bold()
+    ));
     Ok(())
 }
 

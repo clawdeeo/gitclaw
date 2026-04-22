@@ -1,8 +1,10 @@
 use anyhow::{bail, Result};
+use colored::Colorize;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
+use crate::banner;
 use crate::checksum::{find_checksum_file, verify_file};
 use crate::config::Config;
 use crate::extract::extract_archive;
@@ -43,18 +45,24 @@ pub async fn handle_install(
     let bin_dir = bin_dir_from(&config.install_dir);
 
     if dry_run {
-        println!("[DRY RUN] Would install {}:", key);
-        println!("  Release:      {}", release.tag_name);
-        println!("  Asset:        {}", asset.name);
-        println!("  Install dir:  {}", pkg_install_dir.display());
-        println!("  Binary:       {}/{}", pkg_install_dir.display(), repo);
-        println!("  Symlink:      {}/{}", bin_dir.display(), repo);
+        banner::print_separator();
+        banner::print_info(&format!("[DRY RUN] Would install {}", key.cyan()));
+        banner::print_separator();
+        banner::print_kv("Release", &release.tag_name);
+        banner::print_kv("Asset", &asset.name);
+        banner::print_kv("Install dir", &pkg_install_dir.display().to_string());
+        banner::print_kv("Binary", &format!("{}/{}", pkg_install_dir.display(), repo));
+        banner::print_kv("Symlink", &format!("{}/{}", bin_dir.display(), repo));
+        banner::print_separator();
         return Ok(());
     }
 
     if !config.output.quiet {
-        println!("Release: {}", release.tag_name);
-        println!("Asset:   {}", asset.name);
+        banner::print_separator();
+        banner::print_header(&format!("Installing {}", key.cyan().bold()));
+        banner::print_kv("Release", &release.tag_name);
+        banner::print_kv("Asset", &asset.name);
+        banner::print_separator();
     }
 
     // Download to a temporary location
@@ -77,7 +85,7 @@ pub async fn handle_install(
                 }
                 verify_file(&download_path, &expected, algo)?;
                 if !config.output.quiet {
-                    println!("Checksum verified");
+                    banner::print_success("Checksum verified");
                 }
             }
         } else if verify {
@@ -87,6 +95,10 @@ pub async fn handle_install(
 
     let pkg_install_dir = config.install_dir.join("packages").join(&key);
     fs::create_dir_all(&pkg_install_dir)?;
+
+    if !config.output.quiet {
+        banner::print_info(&format!("Extracting {}...", asset.name));
+    }
 
     extract_archive(
         &download_path,
@@ -113,8 +125,9 @@ pub async fn handle_install(
     create_symlink(&binary_absolute, &repo, &bin_dir)?;
 
     if !config.output.quiet {
-        println!("Installed {} -> {}", key, binary.display());
-        println!("   Run: {}/{} (add to $PATH)", bin_dir.display(), repo);
+        banner::print_separator();
+        banner::print_install_complete(&key, &binary.display().to_string());
+        banner::print_separator();
     }
     Ok(())
 }
@@ -136,7 +149,11 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
     }
     let installed = reg.packages.get(&key).unwrap();
     if !config.output.quiet {
-        println!("Checking {} (current: {})...", key, installed.version);
+        banner::print_info(&format!(
+            "Checking {} (current: {})...",
+            key.dimmed(),
+            installed.version.dimmed()
+        ));
     }
 
     let client = GithubClient::new(config.github_token.clone())?;
@@ -144,15 +161,16 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
 
     if latest.tag_name == installed.version {
         if !config.output.quiet {
-            println!("{} is up to date ({})", key, installed.version);
+            banner::print_success(&format!("{} is up to date ({})", key, installed.version));
         }
         return Ok(());
     }
     if !config.output.quiet {
-        println!(
+        banner::print_info(&format!(
             "Update available: {} -> {}",
-            installed.version, latest.tag_name
-        );
+            installed.version.dimmed(),
+            latest.tag_name.green().bold()
+        ));
     }
     crate::registry::uninstall(package, &config.install_dir)?;
     handle_install(package, false, false, false, config).await
@@ -163,7 +181,7 @@ async fn update_all(config: &Config) -> Result<()> {
     let reg = Registry::load_from(&registry_path)?;
     if reg.packages.is_empty() {
         if !config.output.quiet {
-            println!("No packages installed.");
+            banner::print_info("No packages installed.");
         }
         return Ok(());
     }
@@ -183,7 +201,8 @@ async fn update_all(config: &Config) -> Result<()> {
         }
     }
     if !config.output.quiet {
-        println!("\nDone: {} updated, {} current", updated, current);
+        banner::print_separator();
+        banner::print_info(&format!("Done: {} updated, {} current", updated, current));
     }
     Ok(())
 }

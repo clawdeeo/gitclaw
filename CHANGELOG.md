@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Cool CLI styling with figlet ASCII art banner
+- Colored output for all commands (green checkmarks, dimmed paths, cyan highlights)
+- Styled headers, separators, and key-value pairs for better readability
+- NO_COLOR environment variable support for colorless output
+
 ## [0.3.1] - 2026-04-22
 
 ### Fixed
