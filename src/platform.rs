@@ -91,6 +91,49 @@ pub fn current_platform() -> Result<(OS, Arch), PlatformError> {
     Ok((detect_os()?, detect_arch()?))
 }
 
+/// Check if the binary's compile target matches runtime platform
+/// This catches cross-compiled binaries run under emulation
+pub fn check_target_mismatch() -> Option<String> {
+    // Use conditional compilation to detect the compiled target
+    let compiled_for_macos = cfg!(target_os = "macos");
+    let compiled_for_linux = cfg!(target_os = "linux");
+    let compiled_for_windows = cfg!(target_os = "windows");
+
+    let runtime_os = std::env::consts::OS;
+
+    // If compiled for macOS but running on Linux (e.g., under Rosetta or emulation)
+    if compiled_for_macos && runtime_os == "linux" {
+        return Some(
+            "Warning: This gitclaw binary was compiled for macOS but is running on Linux.\n\
+             This will cause incorrect package selection.\n\
+             Please install the Linux version or build from source: cargo install --path ."
+                .to_string(),
+        );
+    }
+
+    // If compiled for Linux but running on macOS
+    if compiled_for_linux && runtime_os == "macos" {
+        return Some(
+            "Warning: This gitclaw binary was compiled for Linux but is running on macOS.\n\
+             This will cause incorrect package selection.\n\
+             Please install the macOS version or build from source: cargo install --path ."
+                .to_string(),
+        );
+    }
+
+    // If compiled for Windows but running on Unix
+    if compiled_for_windows && (runtime_os == "linux" || runtime_os == "macos") {
+        return Some(
+            "Warning: This gitclaw binary was compiled for Windows but is running on a Unix system.\n\
+             This will cause incorrect package selection.\n\
+             Please install the correct version for your OS."
+                .to_string(),
+        );
+    }
+
+    None
+}
+
 pub fn score_asset(name: &str, os: OS, arch: Arch) -> i32 {
     let lower = name.to_lowercase();
     let mut score = 0;

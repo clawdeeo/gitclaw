@@ -33,6 +33,11 @@ async fn main() {
 
     let cli = Cli::parse();
 
+    // Check for platform mismatch (e.g., Darwin binary on Linux)
+    if let Some(warning) = platform::check_target_mismatch() {
+        eprintln!("{}", warning);
+    }
+
     // Load configuration and merge with CLI args
     let config = match Config::load() {
         Ok(cfg) => cfg,
@@ -84,6 +89,21 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             let mut cmd = Cli::command();
             let name = cmd.get_name().to_string();
             generate(shell, &mut cmd, name, &mut std::io::stdout());
+        }
+        Commands::Platform {} => {
+            let (os, arch) = gitclaw::platform::current_platform()?;
+            println!("Detected platform: {} {}", os, arch);
+            #[cfg(target_os = "macos")]
+            println!("Compiled for: macOS");
+            #[cfg(target_os = "linux")]
+            println!("Compiled for: Linux");
+            #[cfg(target_os = "windows")]
+            println!("Compiled for: Windows");
+            println!("OS aliases: {:?}", os.aliases());
+            println!("Arch aliases: {:?}", arch.aliases());
+            if let Some(warning) = gitclaw::platform::check_target_mismatch() {
+                println!("\n{}", warning);
+            }
         }
         Commands::SelfUpdate { check } => {
             if check {
