@@ -42,6 +42,8 @@ pub enum Commands {
         #[arg(value_enum)]
         shell: Shell,
     },
+    /// Show platform information
+    Platform {},
     /// Update gitclaw itself
     SelfUpdate {
         /// Only check for updates, don't install
