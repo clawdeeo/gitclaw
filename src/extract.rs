@@ -120,6 +120,17 @@ pub fn extract_tar_xz(archive_path: &Path, dest_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+pub fn extract_tar_zst(archive_path: &Path, dest_dir: &Path) -> Result<()> {
+    fs::create_dir_all(dest_dir)?;
+
+    let file = fs::File::open(archive_path)?;
+    let dec = zstd::Decoder::new(file)?;
+    let mut archive = tar::Archive::new(dec);
+    archive.unpack(dest_dir)?;
+
+    Ok(())
+}
+
 pub fn extract_plain_binary(archive_path: &Path, dest_dir: &Path) -> Result<()> {
     fs::create_dir_all(dest_dir)?;
 
@@ -175,8 +186,7 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<Vec<u8>> {
         let size_end = size_field
             .iter()
             .rposition(|&b| b != b' ')
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .unwrap_or(size_field.len());
         let size_str = std::str::from_utf8(&size_field[0..size_end]).unwrap_or("0");
         let size: usize = size_str.parse().unwrap_or(0);
 
@@ -190,6 +200,7 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<Vec<u8>> {
         if name == "data.tar.gz"
             || name == "data.tar.xz"
             || name == "data.tar.bz2"
+            || name == "data.tar.zst"
             || name == "data.tar"
         {
             let data = deb_content[offset..offset + size].to_vec();
@@ -217,6 +228,8 @@ fn extract_tar_auto(tar_path: &Path, dest_dir: &Path) -> Result<()> {
         extract_tar_xz(tar_path, dest_dir)
     } else if full_name.ends_with(".tar.bz2") || ext == "bz2" {
         extract_tar_bz2(tar_path, dest_dir)
+    } else if full_name.ends_with(".tar.zst") || ext == "zst" {
+        extract_tar_zst(tar_path, dest_dir)
     } else {
         let file = fs::File::open(tar_path)?;
         let mut archive = tar::Archive::new(file);

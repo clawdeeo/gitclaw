@@ -23,6 +23,7 @@ tar = "=0.4.40"
 flate2 = "=1.0.28"
 bzip2 = "=0.4.4"
 xz2 = "=0.1.7"
+zstd = "=0.13.0"
 zip = { version = "=0.6.6", default-features = false, features = ["deflate"] }
 anyhow = "=1.0.75"
 thiserror = "=1.0.49"

@@ -340,3 +340,15 @@ fn test_extract_archive_nonexistent() {
     let result = extract_archive(&nonexistent, &dest, true);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_detect_archive_type_deb() {
+    use gitclaw::extract::ArchiveType;
+    use std::path::Path;
+
+    let path = Path::new("test.deb");
+    assert_eq!(
+        gitclaw::extract::detect_archive_type(path).unwrap(),
+        ArchiveType::Deb
+    );
+}
