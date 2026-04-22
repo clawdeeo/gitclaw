@@ -8,10 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Cool CLI styling with figlet ASCII art banner
+- **Short alias `gcw`** - Both `gitclaw` and `gcw` binaries available
+- **New `run` command** - Execute installed packages directly: `gitclaw run ripgrep -- --version`
+- Cool CLI styling with figlet ASCII art banner (shown only on `--help`)
+- Version line with random tagline shown on actual commands
 - Colored output for all commands (green checkmarks, dimmed paths, cyan highlights)
 - Styled headers, separators, and key-value pairs for better readability
 - NO_COLOR environment variable support for colorless output
+
+### Changed
+- **Command rename:** `self-update` → `self` (shorter, more consistent)
+- **CI workflow:** Build now runs before Test
+- **Test structure:** All tests moved to `tests/unit/` directory
+- **Banner display:** Figlet only shown on `--help`, commands show version + tagline
+
+### Internal
+- Reorganized test files under `tests/unit/`
 
 ## [0.3.1] - 2026-04-22
 
