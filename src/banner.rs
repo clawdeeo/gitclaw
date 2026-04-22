@@ -1,8 +1,9 @@
 //! Banner and styling for gitclaw CLI
 
 use colored::Colorize;
+use rand::seq::SliceRandom;
 
-/// Simple ASCII art banner for gitclaw
+/// ASCII art banner for gitclaw (white/colorless)
 pub const BANNER: &str = r#"
        _ _       _
       (_) |     | |
@@ -14,17 +15,59 @@ pub const BANNER: &str = r#"
  |___/
 "#;
 
+/// Collection of funny taglines
+const TAGLINES: [&str; 20] = [
+    "Spared no expense.",
+    "The claw is the law.",
+    "Downloading the internet, one repo at a time.",
+    "Because manually downloading releases is so 2024.",
+    "GitHub releases? I hardly know her!",
+    "Your CPU called. It wants a break.",
+    "Making /usr/local/bin great again.",
+    "Rustaceans installing at the speed of cargo.",
+    "Turbofish not included.",
+    "Works on my machine™",
+    "If it compiles, it ships.",
+    "Here be binaries.",
+    "Fearlessly installing since 2024.",
+    "Not tested on animals, only on Airscript.",
+    "Your daily dose of dependencies.",
+    "curl | sh, but make it safe(r).",
+    "Homebrew? Never heard of her.",
+    "sudo make me a sandwich.",
+    "It's not a bug, it's a feature.",
+    "Ship it and see.",
+];
+
 /// Check if colors should be enabled
 fn color_enabled() -> bool {
     std::env::var("NO_COLOR").is_err() && atty::is(atty::Stream::Stdout)
 }
 
-/// Print the banner
+/// Print the banner (white/colorless)
 pub fn print_banner() {
+    println!("{}", BANNER);
+}
+
+/// Print a random tagline
+pub fn print_tagline() {
+    let tagline = TAGLINES.choose(&mut rand::thread_rng()).unwrap();
     if color_enabled() {
-        println!("{}", BANNER.cyan().bold());
+        println!("{}", tagline.dimmed());
     } else {
-        println!("{}", BANNER);
+        println!("{}", tagline);
+    }
+    println!();
+}
+
+/// Print an underlined "Output:" section header
+pub fn print_output_header() {
+    if color_enabled() {
+        println!("{}", "Output:".underline());
+        println!();
+    } else {
+        println!("Output:");
+        println!();
     }
 }
 
