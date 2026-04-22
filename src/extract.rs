@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -11,6 +9,7 @@ pub enum ArchiveType {
     Zip,
     TarBz2,
     TarXz,
+    Deb,
     PlainBinary,
 }
 
@@ -45,8 +44,9 @@ pub fn detect_archive_type(file_path: &Path) -> Result<ArchiveType> {
     } else if lower.ends_with(".tar.xz") || lower.ends_with(".txz") {
         Ok(ArchiveType::TarXz)
     } else if lower.ends_with(".tar") {
-        // Plain tar - treat as TarGz for extraction purposes
         Ok(ArchiveType::TarGz)
+    } else if lower.ends_with(".deb") {
+        Ok(ArchiveType::Deb)
     } else if lower.ends_with(".exe") || lower.ends_with(".bin") || !lower.contains('.') {
         Ok(ArchiveType::PlainBinary)
     } else {
@@ -133,6 +133,98 @@ pub fn extract_plain_binary(archive_path: &Path, dest_dir: &Path) -> Result<()> 
     Ok(())
 }
 
+pub fn extract_deb(archive_path: &Path, dest_dir: &Path) -> Result<()> {
+    fs::create_dir_all(dest_dir)?;
+
+    let deb_content = fs::read(archive_path)?;
+    let data_tar = extract_data_tar_from_deb(&deb_content)?;
+
+    let temp_dir = tempfile::tempdir()?;
+    let data_tar_path = temp_dir.path().join("data.tar");
+    fs::write(&data_tar_path, data_tar)?;
+
+    extract_tar_auto(&data_tar_path, dest_dir)?;
+
+    Ok(())
+}
+
+fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<Vec<u8>> {
+    #[allow(clippy::byte_char_slices)]
+    const AR_MAGIC: &[u8] = &[b'!', b'<', b'a', b'r', b'c', b'h', b'>', b'\n'];
+    if deb_content.len() < AR_MAGIC.len() || &deb_content[0..AR_MAGIC.len()] != AR_MAGIC {
+        return Err(ExtractionError::UnsupportedFormat(
+            "Invalid .deb file: missing ar magic".to_string(),
+        ));
+    }
+
+    let mut offset = AR_MAGIC.len();
+    while offset + 60 <= deb_content.len() {
+        let header = &deb_content[offset..offset + 60];
+        offset += 60;
+
+        let name_field = &header[0..16];
+        let name_end = name_field
+            .iter()
+            .rposition(|&b| b != b' ' && b != b'/')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let name_bytes = &name_field[0..name_end];
+        let name = std::str::from_utf8(name_bytes).unwrap_or("").to_string();
+
+        let size_field = &header[48..58];
+        let size_end = size_field
+            .iter()
+            .rposition(|&b| b != b' ')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let size_str = std::str::from_utf8(&size_field[0..size_end]).unwrap_or("0");
+        let size: usize = size_str.parse().unwrap_or(0);
+
+        if size == 0 || offset + size > deb_content.len() {
+            if offset >= deb_content.len() {
+                break;
+            }
+            continue;
+        }
+
+        if name == "data.tar.gz"
+            || name == "data.tar.xz"
+            || name == "data.tar.bz2"
+            || name == "data.tar"
+        {
+            let data = deb_content[offset..offset + size].to_vec();
+            return Ok(data);
+        }
+
+        offset += size;
+        if !offset.is_multiple_of(2) {
+            offset += 1;
+        }
+    }
+
+    Err(ExtractionError::UnsupportedFormat(
+        "Could not find data.tar in .deb package".to_string(),
+    ))
+}
+
+fn extract_tar_auto(tar_path: &Path, dest_dir: &Path) -> Result<()> {
+    let ext = tar_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let full_name = tar_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+    if full_name.ends_with(".tar.gz") || ext == "gz" {
+        extract_tar_gz(tar_path, dest_dir)
+    } else if full_name.ends_with(".tar.xz") || ext == "xz" {
+        extract_tar_xz(tar_path, dest_dir)
+    } else if full_name.ends_with(".tar.bz2") || ext == "bz2" {
+        extract_tar_bz2(tar_path, dest_dir)
+    } else {
+        let file = fs::File::open(tar_path)?;
+        let mut archive = tar::Archive::new(file);
+        archive.unpack(dest_dir)?;
+        Ok(())
+    }
+}
+
 pub fn extract_archive(archive_path: &Path, dest_dir: &Path, prefer_strip: bool) -> Result<()> {
     let archive_type = detect_archive_type(archive_path)?;
 
@@ -142,10 +234,10 @@ pub fn extract_archive(archive_path: &Path, dest_dir: &Path, prefer_strip: bool)
             ArchiveType::Zip => extract_zip(archive_path, dest_dir),
             ArchiveType::TarBz2 => extract_tar_bz2(archive_path, dest_dir),
             ArchiveType::TarXz => extract_tar_xz(archive_path, dest_dir),
+            ArchiveType::Deb => extract_deb(archive_path, dest_dir),
             ArchiveType::PlainBinary => extract_plain_binary(archive_path, dest_dir),
         }
     } else {
-        // Extract into a subdirectory to avoid stripping
         let name = archive_path
             .file_stem()
             .and_then(|n| n.to_str())
@@ -158,11 +250,8 @@ pub fn extract_archive(archive_path: &Path, dest_dir: &Path, prefer_strip: bool)
             ArchiveType::Zip => extract_zip(archive_path, &effective_dest),
             ArchiveType::TarBz2 => extract_tar_bz2(archive_path, &effective_dest),
             ArchiveType::TarXz => extract_tar_xz(archive_path, &effective_dest),
+            ArchiveType::Deb => extract_deb(archive_path, &effective_dest),
             ArchiveType::PlainBinary => extract_plain_binary(archive_path, &effective_dest),
         }
     }
-}
-
-pub fn extract(archive_path: &Path, dest_dir: &Path) -> Result<()> {
-    extract_archive(archive_path, dest_dir, true)
 }
