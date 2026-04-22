@@ -44,7 +44,7 @@ impl Default for OutputConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default = "default_install_dir")]
     pub install_dir: PathBuf,
@@ -53,6 +53,17 @@ pub struct Config {
     pub download: DownloadConfig,
     #[serde(default)]
     pub output: OutputConfig,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            install_dir: default_install_dir(),
+            github_token: None,
+            download: DownloadConfig::default(),
+            output: OutputConfig::default(),
+        }
+    }
 }
 
 fn default_true() -> bool {
@@ -67,7 +78,6 @@ fn default_install_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".gitclaw")
-        .join("bin")
 }
 
 impl Config {

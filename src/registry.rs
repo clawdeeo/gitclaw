@@ -29,6 +29,7 @@ pub struct Registry {
 }
 
 impl Registry {
+    #[allow(dead_code)]
     fn default_path() -> Result<PathBuf> {
         Ok(dirs::home_dir()
             .ok_or_else(|| anyhow!("No home directory"))?
@@ -36,6 +37,7 @@ impl Registry {
             .join("registry.toml"))
     }
 
+    #[allow(dead_code)]
     pub fn load() -> Result<Self> {
         let p = Self::default_path()?;
         Self::load_from(&p)
@@ -89,8 +91,9 @@ pub fn bin_dir() -> Result<PathBuf> {
     Ok(gitclaw_home()?.join("bin"))
 }
 
-pub fn list_installed(verbose: bool) -> Result<()> {
-    let reg = Registry::load()?;
+pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
+    let registry_path = registry_path_from(install_dir);
+    let reg = Registry::load_from(&registry_path)?;
     if reg.packages.is_empty() {
         banner::print_info(
             "No packages installed. Use 'gitclaw install user/repo' to get started.",
@@ -112,15 +115,40 @@ pub fn list_installed(verbose: bool) -> Result<()> {
             );
         }
     } else {
-        println!("{}", "Package".bold().underline());
-        println!("  {}", "Version".dimmed());
+        // Tabular format
+        println!(
+            "{}",
+            format!(
+                "{:<25} {:<15} {:<30} {}",
+                "Package", "Version", "Path", "Date"
+            )
+            .bold()
+            .underline()
+        );
         banner::print_separator();
         let mut pkgs: Vec<_> = reg.packages.values().collect();
         pkgs.sort_by_key(|p| &p.name);
         for pkg in pkgs {
             let date = &pkg.installed_at[..10.min(pkg.installed_at.len())];
-            println!("{}", pkg.name.green());
-            println!("  {} • {}", pkg.version.dimmed(), date.dimmed());
+            // Simplify path: ~/.gitclaw/packages/... -> ~/.gitclaw/...
+            let path_short = pkg
+                .binary_path
+                .display()
+                .to_string()
+                .replace(&dirs::home_dir().unwrap().display().to_string(), "~")
+                .replace("/packages/", "/p/");
+            let path_display = if path_short.len() > 28 {
+                format!("{}...", &path_short[..25])
+            } else {
+                path_short
+            };
+            println!(
+                "{:<25} {:<15} {:<30} {}",
+                pkg.name.dimmed(),
+                pkg.version.cyan(),
+                path_display,
+                date
+            );
         }
     }
     banner::print_separator();
