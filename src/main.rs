@@ -1,6 +1,7 @@
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
 
+mod banner;
 mod checksum;
 mod cli;
 mod config;
@@ -66,6 +67,14 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 }
 
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
+    // Show banner for certain commands
+    match &cli.command {
+        Commands::Install { .. } | Commands::Platform { .. } | Commands::SelfUpdate { .. } => {
+            banner::print_banner();
+        }
+        _ => {}
+    }
+
     match cli.command {
         Commands::Install {
             packages,
