@@ -1,5 +1,7 @@
+use crate::banner;
 use crate::config::Config;
 use anyhow::{bail, Context, Result};
+use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -482,12 +484,10 @@ pub fn parse_package(input: &str) -> Result<(String, String, Option<String>)> {
 /// Search and display releases for a package
 pub async fn search_releases(package: &str, limit: usize, config: &Config) -> Result<()> {
     let (owner, repo, _) = parse_package(package)?;
-    println!("Releases for {}/{}:\n", owner, repo);
+    banner::print_header(&format!("Releases for {}/{}", owner.cyan(), repo.cyan()));
 
     let client = GithubClient::new(config.github_token.clone())?;
 
-    // We need to access the internal method - using the public API
-    // Since get_releases is private, we'll use get_release with "latest" and fetch via API
     let url = format!("{}/repos/{}/{}/releases", GITHUB_API, owner, repo);
     let resp = client.client.get(&url).send().await?;
 
@@ -498,20 +498,30 @@ pub async fn search_releases(package: &str, limit: usize, config: &Config) -> Re
     let releases: Vec<Release> = resp.json().await?;
 
     if releases.is_empty() {
-        println!("No releases found.");
+        banner::print_info("No releases found.");
         return Ok(());
     }
 
     for r in releases.iter().take(limit) {
-        println!("  {} - {}", r.tag_name, r.name.as_deref().unwrap_or("-"));
+        banner::print_separator();
+        println!(
+            "{} {}",
+            r.tag_name.green().bold(),
+            r.name.as_deref().unwrap_or("-").dimmed()
+        );
         for a in &r.assets {
-            println!("    - {} ({})", a.name, format_size(a.size));
+            println!(
+                "  {} {} {}",
+                "•".dimmed(),
+                a.name.dimmed(),
+                format!("({})", format_size(a.size)).cyan()
+            );
         }
-        println!();
     }
 
     if releases.len() > limit {
-        println!("... and {} more", releases.len() - limit);
+        banner::print_separator();
+        banner::print_info(&format!("... and {} more releases", releases.len() - limit));
     }
 
     Ok(())
