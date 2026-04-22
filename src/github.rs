@@ -85,14 +85,26 @@ impl Platform {
     /// Get platform aliases for matching
     fn aliases(&self) -> &[&'static str] {
         match self {
-            Platform::LinuxX86_64 => &["linux-x86_64", "linux-amd64", "linux-x64"],
-            Platform::LinuxAarch64 => &["linux-aarch64", "linux-arm64"],
+            Platform::LinuxX86_64 => &[
+                "linux-x86_64",
+                "linux-amd64",
+                "linux-x64",
+                "x86_64-unknown-linux-gnu",
+                "x86_64-unknown-linux-musl",
+            ],
+            Platform::LinuxAarch64 => &[
+                "linux-aarch64",
+                "linux-arm64",
+                "aarch64-unknown-linux-gnu",
+                "aarch64-unknown-linux-musl",
+            ],
             Platform::DarwinX86_64 => &[
                 "darwin-x86_64",
                 "darwin-amd64",
                 "darwin-x64",
                 "macos-x86_64",
                 "osx-x86_64",
+                "x86_64-apple-darwin",
             ],
             Platform::DarwinAarch64 => &[
                 "darwin-aarch64",
@@ -100,6 +112,7 @@ impl Platform {
                 "macos-aarch64",
                 "macos-arm64",
                 "osx-arm64",
+                "aarch64-apple-darwin",
             ],
             Platform::WindowsX86_64 => &[
                 "windows-x86_64",
@@ -107,12 +120,15 @@ impl Platform {
                 "windows-x64",
                 "win-x86_64",
                 "win-amd64",
+                "x86_64-pc-windows-msvc",
+                "x86_64-pc-windows-gnu",
             ],
             Platform::WindowsAarch64 => &[
                 "windows-aarch64",
                 "windows-arm64",
                 "win-aarch64",
                 "win-arm64",
+                "aarch64-pc-windows-msvc",
             ],
         }
     }
