@@ -5,7 +5,8 @@ use clap_complete::Shell;
 #[command(
     name = "gitclaw",
     about = "Install software from GitHub releases",
-    version
+    version,
+    before_help = crate::banner::BANNER
 )]
 pub struct Cli {
     #[command(subcommand)]
