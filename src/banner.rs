@@ -4,10 +4,11 @@ use colored::Colorize;
 
 /// Simple ASCII art banner for gitclaw
 pub const BANNER: &str = r#"
-   ___ _  _ ___ ___ __ _ __
-  / __| || | __| _ \/  \ /
- | (_ | __ | _||  _/ () \
-  \___|_||_|___|_|  \__/|_|
+ __ _(_) |_ | | _
+ / _ | | __|/ _ |/ _` \ \ /\ / /
+| (_| | | |_| (_| | (_| |\ V  V /
+ \__, |_|\|\,_|\__,_| \_/\_/
+ |___/
 "#;
 
 /// Check if colors should be enabled
