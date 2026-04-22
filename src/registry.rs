@@ -1,5 +1,7 @@
+use crate::banner;
 use crate::util::registry_path_from;
 use anyhow::{anyhow, Context, Result};
+use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -90,28 +92,39 @@ pub fn bin_dir() -> Result<PathBuf> {
 pub fn list_installed(verbose: bool) -> Result<()> {
     let reg = Registry::load()?;
     if reg.packages.is_empty() {
-        println!("No packages installed. Use 'gitclaw install user/repo' to get started.");
+        banner::print_info(
+            "No packages installed. Use 'gitclaw install user/repo' to get started.",
+        );
         return Ok(());
     }
+
+    banner::print_header("Installed Packages");
+
     if verbose {
         for pkg in reg.packages.values() {
-            println!("{}", pkg.name);
-            println!("  Version:   {}", pkg.version);
-            println!("  Binary:    {}", pkg.binary_path.display());
-            println!("  Installed: {}", pkg.installed_at);
-            println!();
+            banner::print_separator();
+            banner::print_kv("Package", &pkg.name);
+            banner::print_kv("Version", &pkg.version);
+            banner::print_kv("Binary", &pkg.binary_path.display().to_string());
+            banner::print_kv(
+                "Installed",
+                &pkg.installed_at[..10.min(pkg.installed_at.len())],
+            );
         }
     } else {
-        println!("{:<30} {:<15} DATE", "PACKAGE", "VERSION");
-        println!("{}", "-".repeat(60));
+        println!("{}", "Package".bold().underline());
+        println!("  {}", "Version".dimmed());
+        banner::print_separator();
         let mut pkgs: Vec<_> = reg.packages.values().collect();
         pkgs.sort_by_key(|p| &p.name);
         for pkg in pkgs {
             let date = &pkg.installed_at[..10.min(pkg.installed_at.len())];
-            println!("{:<30} {:<15} {}", pkg.name, pkg.version, date);
+            println!("{}", pkg.name.green());
+            println!("  {} • {}", pkg.version.dimmed(), date.dimmed());
         }
     }
-    println!("\n{} package(s)", reg.packages.len());
+    banner::print_separator();
+    banner::print_info(&format!("{} package(s) installed", reg.packages.len()));
     Ok(())
 }
 
