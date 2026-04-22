@@ -2,19 +2,12 @@
 
 use colored::Colorize;
 
-/// ASCII art banner for gitclaw (simpler version without problematic backslash characters)
+/// Simple ASCII art banner for gitclaw
 pub const BANNER: &str = r#"
-   ______   __    __  ________  __       __   ______   __    __ 
-  /      | /  |  /  |/        |/  |     /  | /      | /  |  /  |
- /$$$$$$  |$$ |  $$ |$$$$$$$$/ $$ |   /$$ |/$$$$$$  |$$ |  $$ |
- $$ |__$$ |$$ |  $$ |   $$ |   $$ |  /$$$ |$$ |  $$/ $$ |  $$ |
- $$    $$ |$$ |  $$ |   $$ |   $$ | /$$$$ |$$ |      $$ |  $$ |
- $$$$$$$$ |$$ |  $$ |   $$ |   $$ |$$/$$ |$$ |   __ $$ |  $$ |
- $$ |  $$ |$$ |__$$ |   $$ |   $$ |$$$/ $$ |$$ |__/  |$$ |__$$ |
- $$ |  $$ |$$    $$/    $$ |   $$ | $/  $$ |$$    $$/ $$    $$/ 
- $$/   $$/  $$$$$$/     $$/    $$/      $$/  $$$$$$/   $$$$$$$/  
-                                                         /  |___ 
-                                                        $$/      
+   ___ _  _ ___ ___ __ _ __
+  / __| || | __| _ \/  \ /
+ | (_ | __ | _||  _/ () \
+  \___|_||_|___|_|  \__/|_|
 "#;
 
 /// Check if colors should be enabled
@@ -45,7 +38,7 @@ pub fn print_header(text: &str) {
     }
 }
 
-/// Print success message with checkmark
+/// Print success message
 #[allow(dead_code)]
 pub fn print_success(text: &str) {
     if color_enabled() {
@@ -55,7 +48,7 @@ pub fn print_success(text: &str) {
     }
 }
 
-/// Print error message with X
+/// Print error message
 #[allow(dead_code)]
 pub fn print_error(text: &str) {
     if color_enabled() {
@@ -65,7 +58,7 @@ pub fn print_error(text: &str) {
     }
 }
 
-/// Print info message with info symbol
+/// Print info message
 #[allow(dead_code)]
 pub fn print_info(text: &str) {
     if color_enabled() {
@@ -75,7 +68,7 @@ pub fn print_info(text: &str) {
     }
 }
 
-/// Print warning message with warning symbol
+/// Print warning message
 #[allow(dead_code)]
 pub fn print_warning(text: &str) {
     if color_enabled() {
