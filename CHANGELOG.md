@@ -7,23 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-04-23
+
 ### Added
+- `.deb` archive extraction support with ar format parsing
+- `zstd` decompression support for `.tar.zst` archives
+- Support for both GNU (10-byte) and BSD (8-byte) ar header size fields
+
+### Changed
 - `identifier` field on `InstalledPackage` — set to the repo name at install time
 - `uninstall` now accepts short name (repo or identifier) in addition to `owner/repo`
 - `list` shows an `Identifier` column (cyan) in both normal and verbose modes
 - 74 new integration tests across `tests/checksum.rs`, `tests/config.rs`, `tests/extract.rs`, `tests/github.rs`, `tests/platform.rs`, `tests/registry.rs`
 - `gcw` short alias binary
-
-### Changed
-- Success prefix changed from `[OK]` to `[EXEC]` (bold green)
-- Info prefix is now cyan
-- Removed all horizontal separator lines from output
-- `tests/unit/` folder dissolved — all integration tests now live directly under `tests/`
-- `assert_cmd` moved to `[dev-dependencies]`
-- Removed unused dependencies: `base64`, `base64ct`, `indexmap`, `url`, `time`
+- AGENTS.md and README.md simplified to essential content
 
 ### Fixed
 - `gcw list` crash when registry TOML was written before `identifier` field existed — `#[serde(default)]` applied
+- Platform asset matching now correctly selects platform-specific assets
+- Added Rust target triple aliases for ripgrep and similar Rust projects
+- Symlinks in bin/ now use absolute paths
+- Success prefix changed from `[OK]` to `[EXEC]` (bold green)
+- Info prefix is now cyan
+- Removed all horizontal separator lines from output
+
+### Removed
+- `tests/unit/` folder dissolved — all integration tests now live directly under `tests/`
+- `assert_cmd` moved to `[dev-dependencies]`
+- Unused dependencies: `base64`, `base64ct`, `indexmap`, `url`, `time`
 
 ## [0.3.1] - 2026-04-22
 
