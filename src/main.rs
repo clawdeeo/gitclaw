@@ -57,6 +57,8 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
     match &cli.command {
         Commands::Cache { .. }
+        | Commands::Export { .. }
+        | Commands::Import { .. }
         | Commands::Install { .. }
         | Commands::Lock { .. }
         | Commands::List { .. }
@@ -97,6 +99,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             verify,
             locked,
             local,
+            channel,
         } => {
             output::print_output_header();
 
@@ -108,11 +111,23 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
                 config.clone()
             };
 
+            let ch = match channel.as_deref() {
+                Some(c) => Some(c.parse::<core::channel::Channel>()?),
+                None => None,
+            };
+
             if locked {
                 core::lockfile::install_locked(&install_config).await?
             } else if packages.len() == 1 {
-                core::install::handle_install(&packages[0], force, dry_run, verify, &install_config)
-                    .await?
+                core::install::handle_install(
+                    &packages[0],
+                    force,
+                    dry_run,
+                    verify,
+                    &install_config,
+                    ch,
+                )
+                .await?
             } else {
                 core::install::handle_install_multiple(
                     &packages,
@@ -120,6 +135,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
                     dry_run,
                     verify,
                     &install_config,
+                    ch,
                 )
                 .await?
             }
@@ -155,9 +171,29 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             core::registry::uninstall(&package, &install_dir, &config)?
         }
 
-        Commands::Search { package, limit } => {
+        Commands::Search {
+            package,
+            limit,
+            channel,
+        } => {
             output::print_output_header();
-            network::github::search_releases(&package, limit, &config).await?
+            let ch = match channel.as_deref() {
+                Some(c) => Some(c.parse::<core::channel::Channel>()?),
+                None => None,
+            };
+            network::github::search_releases(&package, limit, &config, ch).await?
+        }
+
+        Commands::Export {
+            output: output_path,
+        } => {
+            output::print_output_header();
+            core::export::handle_export(&config, output_path.as_deref())?
+        }
+
+        Commands::Import { file, force } => {
+            output::print_output_header();
+            core::export::handle_import(&config, &file, force).await?
         }
 
         Commands::Completions { shell } => {

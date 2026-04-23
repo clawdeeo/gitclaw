@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-23
+
+### Added
+- Release channels: `gitclaw install user/repo --channel nightly|beta|stable`
+- `gitclaw search user/repo --channel <name>` filters releases by channel
+- Channel pattern overrides in `.gitclaw.toml` under `[channels]`
+- `gitclaw export` outputs installed packages as TOML to stdout
+- `gitclaw export -o deps.toml` writes to file
+- `gitclaw import deps.toml` installs all packages from a TOML file
+- Import skips already-installed packages unless `--force` is set
+- Export output is deterministic: sorted by owner then repo
+- New modules: `src/core/channel.rs`, `src/core/export.rs`
+
 ## [0.5.0] - 2026-04-23
 
 ### Added

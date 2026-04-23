@@ -101,7 +101,8 @@ pub async fn install_locked(config: &crate::core::config::Config) -> Result<()> 
 
     for entry in &lockfile.packages {
         let package_spec = format!("{}/{}@{}", entry.owner, entry.repo, entry.version);
-        crate::core::install::handle_install(&package_spec, false, false, false, config).await?;
+        crate::core::install::handle_install(&package_spec, false, false, false, config, None)
+            .await?;
     }
 
     output::print_success("All locked packages installed.");

@@ -1,8 +1,10 @@
 pub mod alias;
 pub mod cache;
+pub mod channel;
 pub mod checksum;
 pub mod config;
 pub mod constants;
+pub mod export;
 pub mod extract;
 pub mod install;
 pub mod lockfile;
