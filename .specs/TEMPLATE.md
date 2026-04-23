@@ -1,6 +1,9 @@
 # Spec Template
 
-## Feature: [Name]
+## Small Change (bug fix, tweak)
+Skip this template. Write a clear PR description instead.
+
+## Feature / New Behavior
 
 ### Problem
 [What problem does this solve?]
@@ -23,27 +26,17 @@
 - Manual verification: [steps]
 
 ### Files to Modify
-- [ ] file1.rs
-- [ ] file2.rs
+- [ ] file.rs
 
 ### Documentation Updates
 - [ ] CHANGELOG.md
 - [ ] README.md (if user-facing)
-- [ ] AGENTS.md (if process changes)
 
 ---
 
-## Checkpoint Reviews
+## Checkpoints (tied to deliverables, not percentages)
 
-- [ ] 25%: [what's done, blockers?]
-- [ ] 50%: [what's done, blockers?]
-- [ ] 75%: [what's done, blockers?]
-- [ ] 100%: [final review before PR]
-
-## Post-Mortem (fill after merge)
-
-**What went well:**
-
-**What could improve:**
-
-**Lessons learned:**
+- [ ] [Deliverable 1 — e.g., "Semver parsing compiles and passes tests"]
+- [ ] [Deliverable 2 — e.g., "Lockfile generates valid TOML"]
+- [ ] [Deliverable 3 — e.g., "Alias cycle works end-to-end"]
+- [ ] [Final review before PR]

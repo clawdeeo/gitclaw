@@ -9,7 +9,7 @@ mod core;
 mod network;
 mod output;
 
-use cli::{Cli, Commands};
+use cli::{AliasAction, Cli, Commands};
 use core::config::Config;
 use core::constants::{APP_NAME, APP_NAME_SHORT, DIR_BIN};
 use core::registry::Registry;
@@ -57,6 +57,7 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
     match &cli.command {
         Commands::Install { .. }
+        | Commands::Lock { .. }
         | Commands::List { .. }
         | Commands::Update { .. }
         | Commands::Uninstall { .. }
@@ -64,21 +65,35 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         | Commands::Completions { .. }
         | Commands::Platform { .. }
         | Commands::SelfUpdate { .. }
-        | Commands::Run { .. } => {
+        | Commands::Run { .. }
+        | Commands::Alias { .. } => {
             output::print_version_line();
         }
     }
 
     match cli.command {
+        Commands::Alias { action } => {
+            output::print_output_header();
+            match action {
+                AliasAction::Add { alias, target } => {
+                    core::alias::handle_alias_add(&alias, &target, &config)?
+                }
+                AliasAction::Remove { alias } => core::alias::handle_alias_remove(&alias, &config)?,
+                AliasAction::List {} => core::alias::handle_alias_list(&config)?,
+            }
+        }
         Commands::Install {
             packages,
             force,
             dry_run,
             verify,
+            locked,
         } => {
             output::print_output_header();
 
-            if packages.len() == 1 {
+            if locked {
+                core::lockfile::install_locked(&config).await?
+            } else if packages.len() == 1 {
                 core::install::handle_install(&packages[0], force, dry_run, verify, &config).await?
             } else {
                 core::install::handle_install_multiple(&packages, force, dry_run, verify, &config)
@@ -86,6 +101,11 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             }
         }
 
+        Commands::Lock { dir } => {
+            output::print_output_header();
+            let project_dir = std::path::PathBuf::from(dir);
+            core::lockfile::generate_lockfile(&config.install_dir, &project_dir)?
+        }
         Commands::List { verbose } => {
             output::print_output_header();
             core::registry::list_installed(verbose, &config.install_dir)?
@@ -98,7 +118,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
 
         Commands::Uninstall { package } => {
             output::print_output_header();
-            core::registry::uninstall(&package, &config.install_dir)?
+            core::registry::uninstall(&package, &config.install_dir, &config)?
         }
 
         Commands::Search { package, limit } => {
@@ -147,8 +167,19 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
 }
 
 async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyhow::Result<()> {
-    let (owner, repo) = if package.contains('/') {
-        let parts: Vec<&str> = package.split('/').collect();
+    let resolved = if !package.contains('/') {
+        if let Some(alias_target) = crate::core::alias::AliasMap::load(config)?.resolve(package) {
+            output::print_info(&format!("Alias '{}' -> '{}'.", package, alias_target));
+            alias_target.to_string()
+        } else {
+            package.to_string()
+        }
+    } else {
+        package.to_string()
+    };
+
+    let (owner, repo) = if resolved.contains('/') {
+        let parts: Vec<&str> = resolved.split('/').collect();
         if parts.len() != 2 {
             bail!("Invalid package format. Use 'owner/repo' or just 'repo'.");
         }
@@ -160,20 +191,20 @@ async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyho
         let matches: Vec<_> = reg
             .packages
             .values()
-            .filter(|p| p.repo == package)
+            .filter(|p| p.repo == resolved)
             .collect();
 
         match matches.len() {
             0 => bail!(
                 "Package '{}' not installed. Use '{} install owner/{}' first.",
-                package,
+                resolved,
                 APP_NAME,
-                package
+                resolved
             ),
             1 => (matches[0].owner.clone(), matches[0].repo.clone()),
             _ => bail!(
                 "Multiple packages named '{}'. Use full name (owner/repo).",
-                package
+                resolved
             ),
         }
     };
