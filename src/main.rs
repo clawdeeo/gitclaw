@@ -9,7 +9,7 @@ mod core;
 mod network;
 mod output;
 
-use cli::{AliasAction, Cli, Commands};
+use cli::{AliasAction, CacheAction, Cli, Commands};
 use core::config::Config;
 use core::constants::{APP_NAME, APP_NAME_SHORT, DIR_BIN};
 use core::registry::Registry;
@@ -56,7 +56,8 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
     match &cli.command {
-        Commands::Install { .. }
+        Commands::Cache { .. }
+        | Commands::Install { .. }
         | Commands::Lock { .. }
         | Commands::List { .. }
         | Commands::Update { .. }
@@ -82,22 +83,45 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
                 AliasAction::List {} => core::alias::handle_alias_list(&config)?,
             }
         }
+        Commands::Cache { action } => {
+            output::print_output_header();
+            match action {
+                CacheAction::Clean {} => core::cache::handle_cache_clean(&config)?,
+                CacheAction::Size {} => core::cache::handle_cache_size(&config)?,
+            }
+        }
         Commands::Install {
             packages,
             force,
             dry_run,
             verify,
             locked,
+            local,
         } => {
             output::print_output_header();
 
-            if locked {
-                core::lockfile::install_locked(&config).await?
-            } else if packages.len() == 1 {
-                core::install::handle_install(&packages[0], force, dry_run, verify, &config).await?
+            let install_config = if local {
+                let mut cfg = config.clone();
+                cfg.install_dir = std::env::current_dir()?.join(".gitclaw");
+                cfg
             } else {
-                core::install::handle_install_multiple(&packages, force, dry_run, verify, &config)
+                config.clone()
+            };
+
+            if locked {
+                core::lockfile::install_locked(&install_config).await?
+            } else if packages.len() == 1 {
+                core::install::handle_install(&packages[0], force, dry_run, verify, &install_config)
                     .await?
+            } else {
+                core::install::handle_install_multiple(
+                    &packages,
+                    force,
+                    dry_run,
+                    verify,
+                    &install_config,
+                )
+                .await?
             }
         }
 
@@ -106,9 +130,14 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             let project_dir = std::path::PathBuf::from(dir);
             core::lockfile::generate_lockfile(&config.install_dir, &project_dir)?
         }
-        Commands::List { verbose } => {
+        Commands::List { verbose, outdated } => {
             output::print_output_header();
-            core::registry::list_installed(verbose, &config.install_dir)?
+            if outdated {
+                core::registry::list_outdated(&config.install_dir, config.github_token.as_deref())
+                    .await?
+            } else {
+                core::registry::list_installed(verbose, &config.install_dir)?
+            }
         }
 
         Commands::Update { package } => {
@@ -116,9 +145,14 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             core::install::handle_update(package.as_deref(), &config).await?
         }
 
-        Commands::Uninstall { package } => {
+        Commands::Uninstall { package, local } => {
             output::print_output_header();
-            core::registry::uninstall(&package, &config.install_dir, &config)?
+            let install_dir = if local {
+                std::env::current_dir()?.join(".gitclaw")
+            } else {
+                config.install_dir.clone()
+            };
+            core::registry::uninstall(&package, &install_dir, &config)?
         }
 
         Commands::Search { package, limit } => {

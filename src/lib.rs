@@ -4,6 +4,7 @@ pub mod network;
 pub mod output;
 
 pub use core::alias;
+pub use core::cache;
 pub use core::checksum;
 pub use core::config;
 pub use core::constants;

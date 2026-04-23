@@ -102,13 +102,30 @@ pub async fn handle_install(
         output::print_kv("Asset", &asset.name);
     }
 
-    let temp_dir = std::env::temp_dir().join(format!("{}{}-{}", TEMP_DIR_PREFIX, owner, repo));
-    std::fs::create_dir_all(&temp_dir)?;
-    let download_path = temp_dir.join(&asset.name);
+    let cache_key = crate::core::cache::cache_key(&owner, &repo, &release.tag_name, &asset.name);
+    let cached = crate::core::cache::get_cached(config, &cache_key, None);
 
-    client
-        .download_asset(asset, &download_path, config.download.show_progress)
-        .await?;
+    let download_path = if let Some(cached_path) = cached {
+        if !config.output.quiet {
+            output::print_info("Using cached archive.");
+        }
+        cached_path
+    } else {
+        let temp_dir = std::env::temp_dir().join(format!("{}{}-{}", TEMP_DIR_PREFIX, owner, repo));
+        std::fs::create_dir_all(&temp_dir)?;
+        let temp_path = temp_dir.join(&asset.name);
+
+        client
+            .download_asset(asset, &temp_path, config.download.show_progress)
+            .await?;
+
+        let cached_path = crate::core::cache::store(config, &cache_key, &temp_path)?;
+
+        // clean up temp
+        let _ = fs::remove_file(&temp_path);
+
+        cached_path
+    };
 
     println!();
 

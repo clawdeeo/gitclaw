@@ -1,4 +1,5 @@
 pub mod alias;
+pub mod cache;
 pub mod checksum;
 pub mod config;
 pub mod constants;

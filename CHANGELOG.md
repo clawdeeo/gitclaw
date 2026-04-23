@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-23
+
+### Added
+- Asset caching: downloaded archives cached to `~/.gitclaw/cache/`, reused on subsequent installs
+- `gitclaw cache clean` — remove all cached archives
+- `gitclaw cache size` — show total cache size on disk
+- `gitclaw list --outdated` — compare installed versions against latest GitHub releases
+- Local installs: `gitclaw install --local user/repo` installs to `./.gitclaw/`
+- `gitclaw uninstall --local` — uninstall from local project directory
+- `sha2` crate dependency for cache integrity verification
+
 ## [0.4.0] - 2026-04-23
 
 ### Added
