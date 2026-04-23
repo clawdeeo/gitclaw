@@ -22,8 +22,15 @@ gcw install --locked
 gcw alias add rg BurntSushi/ripgrep
 gcw install rg
 gcw list
+gcw list --outdated
 gcw update sharkdp/bat
 gcw uninstall bat
+
+gcw cache size
+gcw cache clean
+
+gcw install --local sharkdp/bat  # project-local install
+gcw uninstall --local bat
 ```
 
 ## Configuration

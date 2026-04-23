@@ -10,6 +10,7 @@ use tracing::debug;
 use crate::core::config::Config;
 use crate::core::constants::APP_NAME_SHORT;
 use crate::core::util::registry_path_from;
+use crate::network::github::{parse_package, GithubClient};
 use crate::output;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -170,12 +171,59 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+pub async fn list_outdated(install_dir: &Path, token: Option<&str>) -> Result<()> {
+    let registry_path = registry_path_from(install_dir);
+    let reg = Registry::load_from(&registry_path)?;
+
+    if reg.packages.is_empty() {
+        output::print_info("No packages installed.");
+        return Ok(());
+    }
+
+    let client = GithubClient::new(token.map(|s| s.to_string()))?;
+    let mut outdated = Vec::new();
+
+    for pkg in reg.packages.values() {
+        let latest = match client.get_release(&pkg.owner, &pkg.repo, "latest").await {
+            Ok(r) => r.tag_name,
+            Err(_) => continue,
+        };
+
+        if latest != pkg.version {
+            outdated.push((pkg.name.clone(), pkg.version.clone(), latest));
+        }
+    }
+
+    if outdated.is_empty() {
+        output::print_success("All packages are up to date.");
+        return Ok(());
+    }
+
+    println!(
+        "{}",
+        format!("{:<30} {:<20} {}", "Package", "Installed", "Latest").bold()
+    );
+
+    for (name, installed, latest) in &outdated {
+        println!(
+            "{:<30} {:<20} {}",
+            name.dimmed(),
+            installed,
+            latest.green().bold()
+        );
+    }
+
+    println!();
+    output::print_info(&format!("{} package(s) outdated.", outdated.len()));
+    Ok(())
+}
+
 pub fn uninstall(package: &str, install_dir: &Path, config: &Config) -> Result<()> {
     let registry_path = registry_path_from(install_dir);
     let mut reg = Registry::load_from(&registry_path)?;
 
     let key = if package.contains('/') {
-        let (owner, repo, _) = crate::network::github::parse_package(package)?;
+        let (owner, repo, _) = parse_package(package)?;
         format!("{}/{}", owner, repo)
     } else {
         let resolved = if let Some(alias_target) =

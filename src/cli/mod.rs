@@ -25,6 +25,14 @@ pub struct Cli {
 }
 
 #[derive(Subcommand)]
+pub enum CacheAction {
+    #[command(about = "Remove all cached archives.")]
+    Clean {},
+    #[command(about = "Show total cache size on disk.")]
+    Size {},
+}
+
+#[derive(Subcommand)]
 pub enum AliasAction {
     #[command(about = "Add a package alias.")]
     Add {
@@ -49,6 +57,11 @@ pub enum Commands {
         #[command(subcommand)]
         action: AliasAction,
     },
+    #[command(about = "Manage the asset cache.")]
+    Cache {
+        #[command(subcommand)]
+        action: CacheAction,
+    },
     #[command(about = "Install packages from GitHub releases.")]
     Install {
         #[arg(num_args = 1.., help = "Package(s) to install (format: owner/repo or owner/repo@version).")]
@@ -61,6 +74,8 @@ pub enum Commands {
         verify: bool,
         #[arg(long, help = "Install exact versions from gitclaw.lock.")]
         locked: bool,
+        #[arg(long, help = "Install to project-local .gitclaw/ directory.")]
+        local: bool,
     },
     #[command(about = "Generate a lockfile from installed packages.")]
     Lock {
@@ -76,6 +91,8 @@ pub enum Commands {
     List {
         #[arg(short, long, help = "Show detailed information.")]
         verbose: bool,
+        #[arg(long, help = "Show packages with newer versions available.")]
+        outdated: bool,
     },
     #[command(about = "Update installed packages.")]
     Update {
@@ -86,6 +103,8 @@ pub enum Commands {
     Uninstall {
         #[arg(help = "Package to uninstall (format: owner/repo or identifier).")]
         package: String,
+        #[arg(long, help = "Uninstall from project-local .gitclaw/ directory.")]
+        local: bool,
     },
     #[command(about = "Search for releases on GitHub.")]
     Search {
