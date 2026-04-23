@@ -75,6 +75,7 @@ fn test_local_registry_load_save() {
         install_dir: local_dir.join("packages").join("sharkdp").join("bat"),
         asset_name: "bat-v0.24.0-x86_64-linux.tar.gz".to_string(),
         identifier: "bat".to_string(),
+        channel: None,
     });
     reg.save().unwrap();
 

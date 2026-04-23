@@ -16,6 +16,7 @@ fn make_pkg(name: &str, owner: &str, repo: &str, version: &str, asset: &str) -> 
         install_dir: PathBuf::from("/tmp/test"),
         asset_name: asset.to_string(),
         identifier: repo.to_string(),
+        channel: None,
     }
 }
 

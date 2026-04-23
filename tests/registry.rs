@@ -12,6 +12,7 @@ fn test_installed_package_struct() {
         install_dir: PathBuf::from("/home/user/.gitclaw/packages/BurntSushi/ripgrep"),
         asset_name: "ripgrep-13.0.0-x86_64-unknown-linux-musl.tar.gz".to_string(),
         identifier: "ripgrep".to_string(),
+        channel: None,
     };
 
     assert_eq!(pkg.name, "BurntSushi/ripgrep");
@@ -45,6 +46,7 @@ fn test_registry_add() {
         install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/package"),
         asset_name: "package-1.0.0.tar.gz".to_string(),
         identifier: "package".to_string(),
+        channel: None,
     };
 
     registry.packages.insert(pkg.name.clone(), pkg);
@@ -68,6 +70,7 @@ fn test_registry_remove() {
             install_dir: PathBuf::from("/home/user/.gitclaw/packages/user1/pkg1"),
             asset_name: "pkg1.tar.gz".to_string(),
             identifier: "pkg1".to_string(),
+            channel: None,
         },
     );
 
@@ -83,6 +86,7 @@ fn test_registry_remove() {
             install_dir: PathBuf::from("/home/user/.gitclaw/packages/user2/pkg2"),
             asset_name: "pkg2.tar.gz".to_string(),
             identifier: "pkg2".to_string(),
+            channel: None,
         },
     );
 
@@ -108,6 +112,7 @@ fn test_registry_get() {
         install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
         asset_name: "pkg.tar.gz".to_string(),
         identifier: "pkg".to_string(),
+        channel: None,
     };
 
     registry.packages.insert(pkg.name.clone(), pkg);
@@ -116,7 +121,7 @@ fn test_registry_get() {
     assert!(retrieved.is_some());
     assert_eq!(retrieved.unwrap().version, "1.0.0");
 
-    assert!(registry.packages.get("nonexistent/pkg").is_none());
+    assert!(!registry.packages.contains_key("nonexistent/pkg"));
 }
 
 #[test]
@@ -137,6 +142,7 @@ fn test_registry_is_installed() {
             install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/package"),
             asset_name: "package.tar.gz".to_string(),
             identifier: "package".to_string(),
+            channel: None,
         },
     );
 
@@ -159,6 +165,7 @@ fn test_serialize_deserialize() {
             install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
             asset_name: "pkg.tar.gz".to_string(),
             identifier: "pkg".to_string(),
+            channel: None,
         },
     );
 
@@ -221,6 +228,7 @@ fn test_registry_crud() {
         install_dir: PathBuf::from("/tmp/install"),
         asset_name: "tool.tar.gz".to_string(),
         identifier: "repo".to_string(),
+        channel: None,
     };
 
     assert!(!reg.is_installed("user/repo"));

@@ -58,7 +58,7 @@ Project-scoped installation isolated from the global registry:
 gitclaw install --local user/repo
 ```
 
-## 0.6.0 — Advanced Features ✅
+## 0.6.0 — Advanced Features ✅ ✅
 
 **Release channels**
 
@@ -76,7 +76,7 @@ gitclaw export > deps.toml
 gitclaw import deps.toml
 ```
 
-## 0.7.0 — Platform Integration
+## 0.7.0 — Platform Integration ✅
 
 **Package manager awareness**
 

@@ -27,6 +27,7 @@ fn sample_pkg(name: &str, owner: &str, repo: &str, version: &str) -> InstalledPa
         install_dir: PathBuf::from("/tmp/install"),
         asset_name: format!("{}-{}.tar.gz", repo, version),
         identifier: repo.to_string(),
+        channel: None,
     }
 }
 
