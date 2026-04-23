@@ -58,7 +58,7 @@ Project-scoped installation isolated from the global registry:
 gitclaw install --local user/repo
 ```
 
-## 0.6.0 — Advanced Features ✅
+## 0.6.0 — Advanced Features ✅ ✅
 
 **Release channels**
 
