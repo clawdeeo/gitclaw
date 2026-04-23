@@ -25,6 +25,8 @@ pub struct InstalledPackage {
     pub asset_name: String,
     #[serde(default)]
     pub identifier: String,
+    #[serde(default)]
+    pub channel: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -76,7 +76,7 @@ gitclaw export > deps.toml
 gitclaw import deps.toml
 ```
 
-## 0.7.0 — Platform Integration
+## 0.7.0 — Platform Integration ✅
 
 **Package manager awareness**
 

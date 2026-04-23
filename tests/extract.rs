@@ -30,7 +30,7 @@ fn create_test_zip(dir: &TempDir, files: &[(&str, &[u8])]) -> std::path::PathBuf
 
     for (name, content) in files {
         writer.start_file(*name, options).unwrap();
-        writer.write_all(*content).unwrap();
+        writer.write_all(content).unwrap();
     }
 
     writer.finish().unwrap();

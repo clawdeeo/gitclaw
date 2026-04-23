@@ -186,6 +186,7 @@ pub async fn handle_install(
         install_dir: pkg_install_dir.clone(),
         asset_name: asset.name.clone(),
         identifier: repo.clone(),
+        channel: channel.map(|c| c.to_string()),
     };
 
     reg.add(pkg);
@@ -230,7 +231,23 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
     }
 
     let client = GithubClient::new(config.github_token.clone())?;
-    let latest = client.get_release(&owner, &repo, "latest").await?;
+
+    let ch = match installed.channel.as_deref() {
+        Some(c) => Some(c.parse::<crate::core::channel::Channel>()?),
+        None => None,
+    };
+
+    let latest = match ch {
+        Some(channel) => {
+            let releases = client.get_releases(&owner, &repo).await?;
+            let filtered = crate::core::channel::filter_releases(&releases, channel, None);
+            if filtered.is_empty() {
+                bail!("No {} release found for {}/{}.", channel, owner, repo);
+            }
+            filtered.into_iter().next().unwrap()
+        }
+        None => client.get_release(&owner, &repo, "latest").await?,
+    };
 
     if latest.tag_name == installed.version {
         if !config.output.quiet {
@@ -248,7 +265,7 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
     }
 
     crate::core::registry::uninstall(package, &config.install_dir, config)?;
-    handle_install(package, false, false, false, config, None).await
+    handle_install(package, false, false, false, config, ch).await
 }
 
 async fn update_all(config: &Config) -> Result<()> {

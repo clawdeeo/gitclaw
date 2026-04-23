@@ -133,6 +133,7 @@ mod tests {
             install_dir: PathBuf::from("/tmp/test"),
             asset_name: asset.to_string(),
             identifier: repo.to_string(),
+            channel: None,
         }
     }
 

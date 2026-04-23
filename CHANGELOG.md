@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-23
+
+### Added
+- Install channel persisted in registry: `--channel` stored per package
+- `gitclaw update` respects stored channel when checking for newer releases
+- Optional `channel` field on `InstalledPackage` (backward compatible)
+- New tests in `tests/channel_persist.rs`
+
 ## [0.6.0] - 2026-04-23
 
 ### Added
