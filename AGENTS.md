@@ -83,5 +83,36 @@ Each file covers the corresponding module's public API. Tests that validate erro
 
 Verify → Test → Build
 
+## Spec-Driven Development
+
+1. Create `.specs/feature-name.md` from TEMPLATE.md before coding
+2. Define acceptance criteria and test plan
+3. Review spec with user before implementation
+4. Checkpoint at 25%, 50%, 75% for feedback
+5. Delete spec after merge (gitignored, temporary)
+
+## PR Discipline
+
+- Always branch: `feat/`, `fix/`, `docs/`, `chore/`
+- Never push to main directly
+- Squash merge after review
+- Include tests and documentation updates
+
+## Definition of Done
+
+- [ ] Code complete
+- [ ] Tests pass (`cargo test`)
+- [ ] Lint clean (`cargo fmt && cargo clippy`)
+- [ ] Documentation updated (CHANGELOG, README if needed)
+- [ ] Manual verification done
+- [ ] PR opened and reviewed
+
+## Post-Mortems
+
+After any significant issue or rework, document:
+- What went wrong
+- Root cause
+- Prevention for next time
+
 *Last updated: 2026-04-23*
 
