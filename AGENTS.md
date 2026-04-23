@@ -90,7 +90,7 @@ Verify → Test → Build
 3. Features: full spec with acceptance criteria
 4. Review spec with user before implementation
 5. Checkpoints tied to deliverables, not percentages
-6. Keep specs in git — archive after merge
+6. Specs are temporary planning artifacts — delete after merge
 7. Post-mortem lessons go to AGENTS.md, not the spec
 
 ## PR Discipline

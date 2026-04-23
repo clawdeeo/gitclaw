@@ -5,9 +5,11 @@ pub mod output;
 
 pub use core::alias;
 pub use core::cache;
+pub use core::channel;
 pub use core::checksum;
 pub use core::config;
 pub use core::constants;
+pub use core::export;
 pub use core::extract;
 pub use core::install;
 pub use core::lockfile;

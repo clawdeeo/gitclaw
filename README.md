@@ -31,6 +31,12 @@ gcw cache clean
 
 gcw install --local sharkdp/bat  # project-local install
 gcw uninstall --local bat
+
+gcw install BurntSushi/ripgrep --channel nightly
+gcw search sharkdp/fd --channel beta
+
+gcw export -o deps.toml
+gcw import deps.toml
 ```
 
 ## Configuration

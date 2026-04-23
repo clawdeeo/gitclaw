@@ -26,6 +26,7 @@ pub async fn handle_install(
     dry_run: bool,
     verify: bool,
     config: &Config,
+    channel: Option<crate::core::channel::Channel>,
 ) -> Result<()> {
     let resolved = if !package.contains('/') {
         if let Some(alias_target) = crate::core::alias::AliasMap::load(config)?.resolve(package) {
@@ -69,8 +70,16 @@ pub async fn handle_install(
 
     let client = GithubClient::new(config.github_token.clone())?;
 
-    let release = match &version {
-        Some(v) => {
+    let release = match (&version, channel) {
+        (_, Some(ch)) => {
+            let releases = client.get_releases(&owner, &repo).await?;
+            let filtered = crate::core::channel::filter_releases(&releases, ch, None);
+            if filtered.is_empty() {
+                bail!("No {} release found for {}/{}.", ch, owner, repo);
+            }
+            filtered.into_iter().next().unwrap()
+        }
+        (Some(v), None) => {
             if is_semver_constraint(v) {
                 let constraint = VersionConstraint::parse(v)?;
                 find_matching_release(&client, &owner, &repo, &constraint).await?
@@ -78,7 +87,7 @@ pub async fn handle_install(
                 client.get_release(&owner, &repo, v).await?
             }
         }
-        None => client.get_release(&owner, &repo, "latest").await?,
+        (None, None) => client.get_release(&owner, &repo, "latest").await?,
     };
 
     let asset = select_best_asset(&release)?;
@@ -239,7 +248,7 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
     }
 
     crate::core::registry::uninstall(package, &config.install_dir, config)?;
-    handle_install(package, false, false, false, config).await
+    handle_install(package, false, false, false, config, None).await
 }
 
 async fn update_all(config: &Config) -> Result<()> {
@@ -355,6 +364,7 @@ pub async fn handle_install_multiple(
     dry_run: bool,
     verify: bool,
     config: &Config,
+    channel: Option<crate::core::channel::Channel>,
 ) -> Result<()> {
     let total = packages.len();
 
@@ -367,10 +377,11 @@ pub async fn handle_install_multiple(
     for pkg in packages {
         let pkg = pkg.clone();
         let config = config.clone();
+        let ch = channel;
 
         let task =
             tokio::spawn(
-                async move { handle_install(&pkg, force, dry_run, verify, &config).await },
+                async move { handle_install(&pkg, force, dry_run, verify, &config, ch).await },
             );
 
         tasks.push(task);

@@ -31,7 +31,7 @@ gitclaw alias rg BurntSushi/ripgrep
 gitclaw install rg
 ```
 
-## 0.5.0 — User Experience
+## 0.5.0 — User Experience ✅ ✅
 
 **Asset caching**
 
@@ -58,7 +58,7 @@ Project-scoped installation isolated from the global registry:
 gitclaw install --local user/repo
 ```
 
-## 0.6.0 — Advanced Features
+## 0.6.0 — Advanced Features ✅
 
 **Release channels**
 

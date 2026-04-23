@@ -76,6 +76,8 @@ pub enum Commands {
         locked: bool,
         #[arg(long, help = "Install to project-local .gitclaw/ directory.")]
         local: bool,
+        #[arg(long, help = "Release channel: stable, beta, or nightly.")]
+        channel: Option<String>,
     },
     #[command(about = "Generate a lockfile from installed packages.")]
     Lock {
@@ -117,6 +119,20 @@ pub enum Commands {
             help = "Maximum number of releases to show."
         )]
         limit: usize,
+        #[arg(long, help = "Filter by release channel: stable, beta, or nightly.")]
+        channel: Option<String>,
+    },
+    #[command(about = "Export installed packages to TOML.")]
+    Export {
+        #[arg(short, long, help = "Output file (default: stdout).")]
+        output: Option<String>,
+    },
+    #[command(about = "Install packages from a TOML file.")]
+    Import {
+        #[arg(help = "TOML file to import packages from.")]
+        file: String,
+        #[arg(long, help = "Force reinstall already-installed packages.")]
+        force: bool,
     },
     #[command(about = "Generate shell completions.")]
     Completions {

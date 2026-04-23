@@ -429,7 +429,12 @@ pub fn parse_package(input: &str) -> Result<(String, String, Option<String>)> {
     Ok((parts[0].to_string(), parts[1].to_string(), version))
 }
 
-pub async fn search_releases(package: &str, limit: usize, config: &Config) -> Result<()> {
+pub async fn search_releases(
+    package: &str,
+    limit: usize,
+    config: &Config,
+    channel: Option<crate::core::channel::Channel>,
+) -> Result<()> {
     let (owner, repo, _) = parse_package(package)?;
 
     let client = GithubClient::new(config.github_token.clone())?;
@@ -452,7 +457,11 @@ pub async fn search_releases(package: &str, limit: usize, config: &Config) -> Re
         .map(|s| s.contains("rel=\"next\""))
         .unwrap_or(false);
 
-    let releases: Vec<Release> = resp.json().await?;
+    let mut releases: Vec<Release> = resp.json().await?;
+
+    if let Some(ch) = channel {
+        releases = crate::core::channel::filter_releases(&releases, ch, None);
+    }
 
     if releases.is_empty() {
         output::print_info("No releases found.");
