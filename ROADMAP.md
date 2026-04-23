@@ -31,7 +31,7 @@ gitclaw alias rg BurntSushi/ripgrep
 gitclaw install rg
 ```
 
-## 0.5.0 — User Experience
+## 0.5.0 — User Experience ✅
 
 **Asset caching**
 
