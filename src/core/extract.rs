@@ -1,6 +1,7 @@
 use std::fs;
 use std::io;
 use std::path::Path;
+
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,7 +48,7 @@ pub fn detect_archive_type(file_path: &Path) -> Result<ArchiveType> {
         Ok(ArchiveType::TarGz)
     } else if lower.ends_with(".deb") {
         Ok(ArchiveType::Deb)
-    } else if lower.ends_with(".exe") || lower.ends_with(".bin") || !lower.contains('.') {
+    } else if lower.ends_with(".bin") || !lower.contains('.') {
         Ok(ArchiveType::PlainBinary)
     } else {
         Err(ExtractionError::UnknownArchiveType(filename.to_string()))
@@ -82,10 +83,10 @@ pub fn extract_zip(archive_path: &Path, dest_dir: &Path) -> Result<()> {
             if let Some(parent) = out_path.parent() {
                 fs::create_dir_all(parent)?;
             }
+
             let mut out_file = fs::File::create(&out_path)?;
             io::copy(&mut file, &mut out_file)?;
 
-            #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
                 if let Some(mode) = file.unix_mode() {

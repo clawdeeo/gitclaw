@@ -1,28 +1,24 @@
+use std::process::Command;
+
+use anyhow::bail;
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
 
-mod banner;
-mod checksum;
 mod cli;
-mod config;
-mod extract;
-mod github;
-mod install;
-mod platform;
-mod registry;
-mod self_update;
-mod util;
+mod core;
+mod network;
+mod output;
 
-use anyhow::bail;
 use cli::{Cli, Commands};
-use config::Config;
-use registry::Registry;
-use util::registry_path_from;
+use core::config::Config;
+use core::constants::{APP_NAME, APP_NAME_SHORT, DIR_BIN};
+use core::registry::Registry;
+use core::util::registry_path_from;
 
 #[tokio::main]
 async fn main() {
     if let Err(e) = color_eyre::install() {
-        eprintln!("Failed to initialize color-eyre: {}", e);
+        output::print_error(&format!("Failed to initialize color-eyre: {}.", e));
         std::process::exit(1);
     }
 
@@ -38,7 +34,7 @@ async fn main() {
     let config = match Config::load() {
         Ok(cfg) => cfg,
         Err(e) => {
-            eprintln!("Error loading config: {}", e);
+            output::print_error(&format!("Failed to load config: {}.", e));
             std::process::exit(1);
         }
     };
@@ -46,7 +42,7 @@ async fn main() {
     let config = apply_cli_overrides(config, &cli);
 
     if let Err(e) = run(cli, config).await {
-        eprintln!("Error: {}", e);
+        output::print_error(&format!("{}", e));
         std::process::exit(1);
     }
 }
@@ -60,16 +56,16 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
     match &cli.command {
-        Commands::Completions { .. } => {}
         Commands::Install { .. }
         | Commands::List { .. }
         | Commands::Update { .. }
         | Commands::Uninstall { .. }
         | Commands::Search { .. }
+        | Commands::Completions { .. }
         | Commands::Platform { .. }
         | Commands::SelfUpdate { .. }
         | Commands::Run { .. } => {
-            banner::print_version_line();
+            output::print_version_line();
         }
     }
 
@@ -80,60 +76,69 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             dry_run,
             verify,
         } => {
+            output::print_output_header();
+
             if packages.len() == 1 {
-                install::handle_install(&packages[0], force, dry_run, verify, &config).await?
+                core::install::handle_install(&packages[0], force, dry_run, verify, &config).await?
             } else {
-                install::handle_install_multiple(&packages, force, dry_run, verify, &config).await?
+                core::install::handle_install_multiple(&packages, force, dry_run, verify, &config)
+                    .await?
             }
         }
 
         Commands::List { verbose } => {
-            banner::print_output_header();
-            registry::list_installed(verbose, &config.install_dir)?
+            output::print_output_header();
+            core::registry::list_installed(verbose, &config.install_dir)?
         }
 
         Commands::Update { package } => {
-            banner::print_output_header();
-            install::handle_update(package.as_deref(), &config).await?
+            output::print_output_header();
+            core::install::handle_update(package.as_deref(), &config).await?
         }
 
         Commands::Uninstall { package } => {
-            banner::print_output_header();
-            registry::uninstall(&package, &config.install_dir)?
+            output::print_output_header();
+            core::registry::uninstall(&package, &config.install_dir)?
         }
 
         Commands::Search { package, limit } => {
-            banner::print_output_header();
-            github::search_releases(&package, limit, &config).await?
+            output::print_output_header();
+            network::github::search_releases(&package, limit, &config).await?
         }
 
         Commands::Completions { shell } => {
-            banner::print_output_header();
+            output::print_output_header();
             let mut cmd = Cli::command();
             let name = cmd.get_name().to_string();
-            generate(shell, &mut cmd, name, &mut std::io::stdout());
+            generate(shell, &mut cmd, name.clone(), &mut std::io::stdout());
+            generate(
+                shell,
+                &mut Cli::command(),
+                APP_NAME_SHORT,
+                &mut std::io::stdout(),
+            );
         }
 
         Commands::Platform {} => {
-            banner::print_output_header();
-            let arch = platform::current_platform();
-            banner::print_info(&format!("Detected platform: linux {}", arch));
-            banner::print_info(&format!("Compiled for: Linux"));
-            banner::print_info(&format!("Architecture aliases: {:?}", arch.aliases()));
+            output::print_output_header();
+            let arch = network::platform::current_platform();
+            output::print_info(&format!("Detected platform: linux {}", arch));
+            output::print_info("Compiled for: Linux");
+            output::print_info(&format!("Architecture aliases: {:?}", arch.aliases()));
         }
 
         Commands::SelfUpdate { check } => {
-            banner::print_output_header();
+            output::print_output_header();
 
             if check {
-                self_update::check_for_update(&config).await?
+                core::updater::check_for_update(&config).await?
             } else {
-                self_update::perform_update(&config).await?
+                core::updater::perform_update(&config).await?
             }
         }
 
         Commands::Run { package, args } => {
-            banner::print_output_header();
+            output::print_output_header();
             run_package(&package, args, &config).await?
         }
     }
@@ -160,8 +165,9 @@ async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyho
 
         match matches.len() {
             0 => bail!(
-                "Package '{}' not installed. Use 'gitclaw install owner/{}' first.",
+                "Package '{}' not installed. Use '{} install owner/{}' first.",
                 package,
+                APP_NAME,
                 package
             ),
             1 => (matches[0].owner.clone(), matches[0].repo.clone()),
@@ -172,22 +178,21 @@ async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyho
         }
     };
 
-    let binary_path = config.install_dir.join("bin").join(&repo);
+    let binary_path = config.install_dir.join(DIR_BIN).join(&repo);
 
     if !binary_path.exists() {
         bail!(
-            "Binary for '{}/{}' not found at {}",
+            "Binary for '{}/{}' not found at {}.",
             owner,
             repo,
             binary_path.display()
         );
     }
 
-    use std::process::Command;
     let status = Command::new(&binary_path).args(args).status()?;
 
     if !status.success() {
-        bail!("Process exited with code: {:?}", status.code());
+        bail!("Process exited with code: {:?}.", status.code());
     }
 
     Ok(())

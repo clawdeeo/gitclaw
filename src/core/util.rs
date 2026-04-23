@@ -1,53 +1,56 @@
 #![allow(dead_code)]
 
-use anyhow::{anyhow, Result};
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use std::path::Path;
+use anyhow::{anyhow, Result};
+
+use crate::core::constants::{
+    CONFIG_FILE, DIR_BIN, DIR_CACHE, DIR_DOWNLOADS, DIR_PACKAGES, GITCLAW_DIR, REGISTRY_FILE,
+};
 
 pub fn home_dir() -> Result<PathBuf> {
-    dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
+    dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory."))
 }
 
 pub fn gitclaw_dir() -> Result<PathBuf> {
-    Ok(home_dir()?.join(".gitclaw"))
+    Ok(home_dir()?.join(GITCLAW_DIR))
 }
 
 pub fn bin_dir() -> Result<PathBuf> {
-    Ok(gitclaw_dir()?.join("bin"))
+    Ok(gitclaw_dir()?.join(DIR_BIN))
 }
 
 pub fn bin_dir_from(base: &Path) -> PathBuf {
-    base.join("bin")
+    base.join(DIR_BIN)
 }
 
 pub fn cache_dir() -> Result<PathBuf> {
-    Ok(gitclaw_dir()?.join("cache"))
+    Ok(gitclaw_dir()?.join(DIR_CACHE))
 }
 
 pub fn downloads_dir() -> Result<PathBuf> {
-    Ok(cache_dir()?.join("downloads"))
+    Ok(cache_dir()?.join(DIR_DOWNLOADS))
 }
 
 pub fn packages_dir() -> Result<PathBuf> {
-    Ok(gitclaw_dir()?.join("packages"))
+    Ok(gitclaw_dir()?.join(DIR_PACKAGES))
 }
 
 pub fn packages_dir_from(base: &Path) -> PathBuf {
-    base.join("packages")
+    base.join(DIR_PACKAGES)
 }
 
 pub fn registry_path() -> Result<PathBuf> {
-    Ok(gitclaw_dir()?.join("registry.toml"))
+    Ok(gitclaw_dir()?.join(REGISTRY_FILE))
 }
 
 pub fn registry_path_from(base: &Path) -> PathBuf {
-    base.join("registry.toml")
+    base.join(REGISTRY_FILE)
 }
 
 pub fn config_path() -> Result<PathBuf> {
-    Ok(gitclaw_dir()?.join("config.toml"))
+    Ok(gitclaw_dir()?.join(CONFIG_FILE))
 }
 
 pub fn ensure_dirs() -> Result<()> {
@@ -74,18 +77,4 @@ pub fn format_bytes(bytes: u64) -> String {
     let exp = (bytes as f64).log(1024.0).min(UNITS.len() as f64 - 1.0) as usize;
     let value = bytes as f64 / 1024f64.powi(exp as i32);
     format!("{:.1} {}", value, UNITS[exp])
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_format_bytes() {
-        assert_eq!(format_bytes(0), "0 B");
-        assert_eq!(format_bytes(512), "512.0 B");
-        assert_eq!(format_bytes(1024), "1.0 KB");
-        assert_eq!(format_bytes(1024 * 1024), "1.0 MB");
-        assert_eq!(format_bytes(1024 * 1024 * 1024), "1.0 GB");
-    }
 }

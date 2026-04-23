@@ -206,3 +206,28 @@ fn test_registry_is_not_installed() {
     let registry = gitclaw::registry::Registry::default();
     assert!(!registry.is_installed("nonexistent/package"));
 }
+
+#[test]
+fn test_registry_crud() {
+    let mut reg = gitclaw::registry::Registry::default();
+
+    let pkg = gitclaw::registry::InstalledPackage {
+        name: "user/repo".to_string(),
+        owner: "user".to_string(),
+        repo: "repo".to_string(),
+        version: "v1.0.0".to_string(),
+        installed_at: "2024-01-01".to_string(),
+        binary_path: PathBuf::from("/tmp/binary"),
+        install_dir: PathBuf::from("/tmp/install"),
+        asset_name: "tool.tar.gz".to_string(),
+        identifier: "repo".to_string(),
+    };
+
+    assert!(!reg.is_installed("user/repo"));
+    reg.add(pkg);
+    assert!(reg.is_installed("user/repo"));
+
+    let removed = reg.remove("user/repo");
+    assert!(removed.is_some());
+    assert!(!reg.is_installed("user/repo"));
+}

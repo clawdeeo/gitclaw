@@ -83,39 +83,3 @@ pub fn find_best_asset<'a>(assets: &[&'a str], arch: Arch) -> Option<&'a str> {
         .max_by_key(|(_, s)| *s)
         .map(|(n, _)| n)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_detect_arch() {
-        let arch = detect_arch().unwrap();
-        let _ = format!("{}", arch);
-    }
-
-    #[test]
-    fn test_score_linux_x86_64() {
-        assert!(score_asset("tool-linux-x86_64.tar.gz", Arch::X86_64) > 0);
-        assert!(score_asset("tool-linux-amd64.tar.gz", Arch::X86_64) > 0);
-        assert!(score_asset("checksums.txt", Arch::X86_64) < 0);
-    }
-
-    #[test]
-    fn test_find_best_asset() {
-        let assets = vec![
-            "app-linux-x86_64.tar.gz",
-            "app-linux-aarch64.tar.gz",
-            "app-darwin-arm64.tar.gz",
-            "checksums.txt",
-        ];
-        assert_eq!(
-            find_best_asset(&assets, Arch::X86_64),
-            Some("app-linux-x86_64.tar.gz")
-        );
-        assert_eq!(
-            find_best_asset(&assets, Arch::Aarch64),
-            Some("app-linux-aarch64.tar.gz")
-        );
-    }
-}

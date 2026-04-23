@@ -160,10 +160,6 @@ fn test_detect_archive_type_plain_binary() {
         ArchiveType::PlainBinary
     );
     assert_eq!(
-        gitclaw::extract::detect_archive_type(Path::new("test.exe")).unwrap(),
-        ArchiveType::PlainBinary
-    );
-    assert_eq!(
         gitclaw::extract::detect_archive_type(Path::new("test")).unwrap(),
         ArchiveType::PlainBinary
     );

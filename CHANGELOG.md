@@ -59,10 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release
 - Install binaries from GitHub releases
 - Archive support: tar.gz, tar.bz2, tar.xz, zip
-- Automatic OS/architecture detection
+- Automatic architecture detection (Linux x86_64, aarch64)
 - Package registry for tracking installed packages
 - List, update, and uninstall commands
 - Search command for browsing releases
 - Progress bars for downloads
 - GitHub Actions CI/CD
-- Cross-platform builds (Linux, macOS, Windows)

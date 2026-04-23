@@ -78,13 +78,9 @@ gitclaw import deps.toml
 
 ## 0.7.0 — Platform Integration
 
-**Windows PATH management**
-
-Automatically add installed binaries to the user PATH on Windows.
-
 **Package manager awareness**
 
-Warn when a package is already available via a system package manager (Homebrew, apt, etc.).
+Warn when a package is already available via a system package manager (apt, etc.).
 
 ## 1.0.0 — Stability
 

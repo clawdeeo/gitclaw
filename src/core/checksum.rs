@@ -1,8 +1,9 @@
-use anyhow::{bail, Context, Result};
-use sha2::{Digest, Sha256, Sha512};
 use std::fs;
 use std::io::Read;
 use std::path::Path;
+
+use anyhow::{bail, Context, Result};
+use sha2::{Digest, Sha256, Sha512};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChecksumAlgorithm {
@@ -34,7 +35,7 @@ pub fn is_checksum_file(filename: &str) -> Option<ChecksumAlgorithm> {
 
 pub fn find_checksum_file(
     asset_name: &str,
-    assets: &[crate::github::Asset],
+    assets: &[crate::network::github::Asset],
 ) -> Option<(ChecksumAlgorithm, String)> {
     let patterns = vec![
         format!("{}.sha256", asset_name),

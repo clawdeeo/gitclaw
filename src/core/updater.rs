@@ -1,18 +1,21 @@
-use anyhow::{anyhow, bail, Context, Result};
-use colored::Colorize;
 use std::env;
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
-use crate::banner;
-use crate::config::Config;
-use crate::extract::extract_archive;
-use crate::github::{find_matching_asset, GithubClient, Platform};
+use anyhow::{anyhow, bail, Context, Result};
+use colored::Colorize;
+use walkdir::WalkDir;
 
-const REPO_OWNER: &str = "clawdeeo";
-const REPO_NAME: &str = "gitclaw";
+use crate::core::config::Config;
+use crate::core::constants::{
+    APP_NAME, DIR_EXTRACTED, REPO_NAME, REPO_OWNER, TEMP_DIR_SELF_UPDATE,
+};
+use crate::core::extract::extract_archive;
+use crate::network::github::{find_matching_asset, GithubClient, Platform};
+use crate::output;
 
 fn current_executable() -> Result<PathBuf> {
-    env::current_exe().context("Failed to get current executable path")
+    env::current_exe().context("Failed to get current executable path.")
 }
 
 fn current_version() -> String {
@@ -26,20 +29,20 @@ pub async fn check_for_update(config: &Config) -> Result<()> {
     let current = current_version();
     let latest = release.tag_name.trim_start_matches('v').to_string();
 
-    banner::print_header("Self Update");
-    banner::print_kv("Current version", &current);
-    banner::print_kv("Latest version", &latest);
+    output::print_header("Self Update");
+    output::print_kv("Current version", &current);
+    output::print_kv("Latest version", &latest);
     println!();
 
     if latest == current {
-        banner::print_success("gitclaw is up to date!");
+        output::print_success(&format!("{} is up to date.", APP_NAME));
     } else {
-        banner::print_info(&format!(
-            "Update available: {} -> {}",
+        output::print_info(&format!(
+            "Update available: {} -> {}.",
             current.dimmed(),
             latest.green().bold()
         ));
-        banner::print_info("Run 'gitclaw self-update' to install");
+        output::print_info(&format!("Run '{} self' to install.", APP_NAME));
     }
 
     Ok(())
@@ -53,29 +56,29 @@ pub async fn perform_update(config: &Config) -> Result<()> {
     let latest = release.tag_name.trim_start_matches('v').to_string();
 
     if latest == current {
-        banner::print_success(&format!(
-            "gitclaw is already at the latest version ({})",
-            current
+        output::print_success(&format!(
+            "{} is already at the latest version ({}).",
+            APP_NAME, current
         ));
         return Ok(());
     }
 
-    banner::print_header("Self Update");
-    banner::print_info(&format!(
-        "Updating: {} -> {}",
+    output::print_header("Self Update");
+    output::print_info(&format!(
+        "Updating: {} -> {}.",
         current.dimmed(),
         latest.green().bold()
     ));
 
     let platform = Platform::current()?;
     let asset = find_matching_asset(&release, platform)
-        .map_err(|_| anyhow!("No suitable asset found for platform: {}", platform))?;
+        .map_err(|_| anyhow!("No suitable asset found for platform: {}.", platform))?;
 
     if !config.output.quiet {
-        banner::print_info(&format!("Downloading: {}", asset.name.dimmed()));
+        output::print_info(&format!("Downloading {}.", asset.name.dimmed()));
     }
 
-    let temp_dir = std::env::temp_dir().join("gitclaw-self-update");
+    let temp_dir = std::env::temp_dir().join(TEMP_DIR_SELF_UPDATE);
     std::fs::create_dir_all(&temp_dir)?;
     let download_path = temp_dir.join(&asset.name);
 
@@ -89,48 +92,49 @@ pub async fn perform_update(config: &Config) -> Result<()> {
         || asset.name.ends_with(".zip")
         || asset.name.ends_with(".tar.xz")
     {
-        let extract_dir = temp_dir.join("extracted");
-        banner::print_info("Extracting...");
+        let extract_dir = temp_dir.join(DIR_EXTRACTED);
+        output::print_info("Extracting.");
         extract_archive(&download_path, &extract_dir, true)?;
         let new_binary = find_binary(&extract_dir, REPO_NAME)?;
         replace_binary(&new_binary, &current_exe)?;
     } else {
         replace_binary(&download_path, &current_exe)?;
     }
+
     let _ = std::fs::remove_dir_all(&temp_dir);
-    banner::print_success(&format!(
-        "gitclaw updated successfully to {}",
+    output::print_success(&format!(
+        "{} updated successfully to {}.",
+        APP_NAME,
         latest.green().bold()
     ));
     Ok(())
 }
 
 fn find_binary(dir: &std::path::Path, name: &str) -> Result<PathBuf> {
-    use walkdir::WalkDir;
-
     for entry in WalkDir::new(dir).max_depth(2) {
         let entry = entry?;
         if !entry.file_type().is_file() {
             continue;
         }
+
         let file_name = entry
             .path()
             .file_stem()
             .unwrap_or_default()
             .to_string_lossy();
+
         if file_name == name {
             return Ok(entry.path().to_path_buf());
         }
     }
-    bail!("Binary '{}' not found in extracted archive", name)
+
+    bail!("Binary '{}' not found in extracted archive.", name)
 }
 
-#[cfg(unix)]
 fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
     let backup = current.with_extension("backup");
     std::fs::rename(current, &backup)?;
+
     match std::fs::copy(new, current) {
         Ok(_) => {
             let mut perms = std::fs::metadata(current)?.permissions();
@@ -141,23 +145,7 @@ fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()
         }
         Err(e) => {
             let _ = std::fs::rename(&backup, current);
-            bail!("Failed to install new binary: {}", e)
-        }
-    }
-}
-
-#[cfg(windows)]
-fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()> {
-    let backup = current.with_extension("exe.backup");
-    std::fs::rename(current, &backup)?;
-    match std::fs::copy(new, current) {
-        Ok(_) => {
-            let _ = std::fs::remove_file(&backup);
-            Ok(())
-        }
-        Err(e) => {
-            let _ = std::fs::rename(&backup, current);
-            bail!("Failed to install new binary: {}", e)
+            bail!("Failed to install new binary: {}.", e)
         }
     }
 }

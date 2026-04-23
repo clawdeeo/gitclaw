@@ -1,12 +1,15 @@
-use crate::banner;
-use crate::util::registry_path_from;
-use anyhow::{anyhow, Context, Result};
-use colored::Colorize;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use anyhow::{anyhow, Context, Result};
+use colored::Colorize;
+use serde::{Deserialize, Serialize};
 use tracing::debug;
+
+use crate::core::constants::APP_NAME_SHORT;
+use crate::core::util::registry_path_from;
+use crate::output;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstalledPackage {
@@ -98,29 +101,28 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
     let reg = Registry::load_from(&registry_path)?;
 
     if reg.packages.is_empty() {
-        banner::print_info("No packages installed.");
-        banner::print_info("Use 'gcw install user/repo' to get started.");
+        output::print_info("No packages installed.");
+        output::print_info(&format!(
+            "Use '{} install user/repo' to get started.",
+            APP_NAME_SHORT
+        ));
         return Ok(());
     }
-
-    banner::print_header("[Installed Packages]");
 
     if verbose {
         let mut pkgs: Vec<_> = reg.packages.values().collect();
         pkgs.sort_by_key(|p| &p.name);
 
         for pkg in pkgs {
-            banner::print_kv("Package", &pkg.name);
-            banner::print_kv("Identifier", &pkg.identifier);
-            banner::print_kv("Version", &pkg.version);
-            banner::print_kv("Binary", &pkg.binary_path.display().to_string());
+            output::print_kv("Package", &pkg.name);
+            output::print_kv("Identifier", &pkg.identifier);
+            output::print_kv("Version", &pkg.version);
+            output::print_kv("Binary", &pkg.binary_path.display().to_string());
 
-            banner::print_kv(
+            output::print_kv(
                 "Installed",
                 &pkg.installed_at[..10.min(pkg.installed_at.len())],
             );
-
-            println!();
         }
     } else {
         println!(
@@ -132,10 +134,9 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
             .bold()
         );
 
-        println!();
         let mut pkgs: Vec<_> = reg.packages.values().collect();
         pkgs.sort_by_key(|p| &p.name);
-    
+
         for pkg in pkgs {
             let date = &pkg.installed_at[..10.min(pkg.installed_at.len())];
 
@@ -164,7 +165,7 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
     }
 
     println!();
-    banner::print_info(&format!("{} package(s) installed", reg.packages.len()));
+    output::print_info(&format!("{} package(s) installed.", reg.packages.len()));
     Ok(())
 }
 
@@ -173,7 +174,7 @@ pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
     let mut reg = Registry::load_from(&registry_path)?;
 
     let key = if package.contains('/') {
-        let (owner, repo, _) = crate::github::parse_package(package)?;
+        let (owner, repo, _) = crate::network::github::parse_package(package)?;
         format!("{}/{}", owner, repo)
     } else {
         let matches: Vec<_> = reg
@@ -182,8 +183,9 @@ pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
             .filter(|p| p.identifier == package || p.repo == package)
             .map(|p| p.name.clone())
             .collect();
+
         match matches.len() {
-            0 => anyhow::bail!("Package '{}' not installed", package),
+            0 => anyhow::bail!("Package '{}' not installed.", package),
             1 => matches.into_iter().next().unwrap(),
             _ => anyhow::bail!(
                 "Multiple packages match '{}'. Use full name (owner/repo).",
@@ -194,7 +196,7 @@ pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
 
     let pkg = reg
         .remove(&key)
-        .ok_or_else(|| anyhow!("{} not installed", key))?;
+        .ok_or_else(|| anyhow!("{} not installed.", key))?;
 
     if pkg.install_dir.exists() {
         fs::remove_dir_all(&pkg.install_dir).context("Remove install dir")?;
@@ -204,33 +206,6 @@ pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
         fs::remove_file(&link).context("Remove symlink")?;
     }
     reg.save()?;
-    banner::print_success(&format!("Uninstalled {}", key));
+    output::print_success(&format!("Uninstalled {}.", key.cyan().bold()));
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_registry_crud() {
-        let mut reg = Registry::default();
-        let pkg = InstalledPackage {
-            name: "user/repo".into(),
-            owner: "user".into(),
-            repo: "repo".into(),
-            version: "v1.0.0".into(),
-            installed_at: "2024-01-01".into(),
-            binary_path: PathBuf::from("/tmp/binary"),
-            install_dir: PathBuf::from("/tmp/install"),
-            asset_name: "tool.tar.gz".into(),
-            identifier: "repo".into(),
-        };
-        assert!(!reg.is_installed("user/repo"));
-        reg.add(pkg);
-        assert!(reg.is_installed("user/repo"));
-        let removed = reg.remove("user/repo");
-        assert!(removed.is_some());
-        assert!(!reg.is_installed("user/repo"));
-    }
 }

@@ -19,7 +19,7 @@ cargo test
 ## Testing
 
 - New features require integration tests in `tests/<module>.rs`
-- In-module unit tests go in `#[cfg(test)]` blocks at the bottom of the source file
+- All tests go in `tests/` — no `#[cfg(test)]` blocks in source files
 - New `InstalledPackage` fields must use `#[serde(default)]` for registry compatibility
 
 ## Submitting Changes

@@ -35,80 +35,50 @@ const TAGLINES: [&str; 20] = [
     "Ship it and see.",
 ];
 
-fn color_enabled() -> bool {
-    std::env::var("NO_COLOR").is_err() && atty::is(atty::Stream::Stdout)
-}
-
 pub fn print_version_line() {
     let version = env!("CARGO_PKG_VERSION");
     let tagline = TAGLINES.choose(&mut rand::thread_rng()).unwrap();
 
-    if color_enabled() {
-        println!(
-            "{} {}",
-            format!("gitclaw v{}", version).cyan().bold(),
-            format!("({})", tagline).dimmed()
-        );
-    } else {
-        println!("gitclaw v{} ({})", version, tagline);
-    }
+    println!(
+        "{} {}",
+        format!("gitclaw v{}", version).cyan().bold(),
+        format!("({})", tagline).dimmed()
+    );
 
     println!();
 }
 
 pub fn print_output_header() {
-    if color_enabled() {
-        println!("{}", "Output:".underline());
-    } else {
-        println!("Output:");
-    }
+    println!("{}", "Output:".underline());
 }
 
 pub fn print_header(text: &str) {
-    if color_enabled() {
-        println!("{}", text.bold());
-    } else {
-        println!("{}", text);
-    }
+    println!("{}", text.bold());
 }
 
 pub fn print_success(text: &str) {
-    if color_enabled() {
-        println!("{} {}", "[EXEC]".green().bold(), text);
-    } else {
-        println!("[EXEC] {}", text);
-    }
+    println!("{} {}", "[EXEC]".green().bold(), text);
 }
 
 pub fn print_info(text: &str) {
-    if color_enabled() {
-        println!("{} {}", "[INFO]".cyan(), text);
-    } else {
-        println!("[INFO] {}", text);
-    }
+    println!("{} {}", "[INFO]".cyan(), text);
+}
+
+pub fn print_warn(text: &str) {
+    println!("{} {}", "[WARN]".yellow().bold(), text);
+}
+
+pub fn print_error(text: &str) {
+    eprintln!("{} {}", "[ERR]".red().bold(), text);
 }
 
 pub fn print_kv(key: &str, value: &str) {
-    if color_enabled() {
-        println!("  {} {}", format!("{:20}", key).dimmed(), value);
-    } else {
-        println!("  {:20} {}", key, value);
-    }
+    println!("  {} {}", format!("{:20}", key).dimmed(), value);
 }
 
 pub fn print_install_complete(name: &str, binary_path: &str) {
-    if color_enabled() {
-        print_success(&format!("Installed {}", name.green().bold()));
-        println!("  {} {}", "binary".dimmed(), binary_path.dimmed());
-
-        println!(
-            "  {} {}",
-            "run   ".dimmed(),
-            format!("~/.gitclaw/bin/{}", name).cyan()
-        );
-    } else {
-        println!("[EXEC] Installed {}", name);
-        println!("  binary {}", binary_path);
-        println!("  run    ~/.gitclaw/bin/{}", name);
-    }
+    println!();
+    print_success(&format!("Installed {}", name.green().bold()));
+    println!("  {} {}", "binary".dimmed(), binary_path.dimmed());
+    println!("  {} {}", "run   ".dimmed(), binary_path.to_string().cyan());
 }

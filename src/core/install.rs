@@ -1,16 +1,22 @@
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
+
 use anyhow::{bail, Result};
 use colored::Colorize;
-use std::fs;
-use std::path::{Path, PathBuf};
-use tracing::warn;
+use futures::future::join_all;
+use walkdir::WalkDir;
 
-use crate::banner;
-use crate::checksum::{find_checksum_file, verify_file};
-use crate::config::Config;
-use crate::extract::extract_archive;
-use crate::github::{find_matching_asset, parse_package, Asset, GithubClient, Platform, Release};
-use crate::registry::{InstalledPackage, Registry};
-use crate::util::{bin_dir_from, registry_path_from};
+use crate::core::checksum::{find_checksum_file, verify_file};
+use crate::core::config::Config;
+use crate::core::constants::{APP_NAME, TEMP_DIR_PREFIX};
+use crate::core::extract::extract_archive;
+use crate::core::registry::{InstalledPackage, Registry};
+use crate::core::util::{bin_dir_from, registry_path_from};
+use crate::network::github::{
+    find_matching_asset, parse_package, Asset, GithubClient, Platform, Release,
+};
+use crate::output;
 
 pub async fn handle_install(
     package: &str,
@@ -24,16 +30,18 @@ pub async fn handle_install(
 
     let registry_path = registry_path_from(&config.install_dir);
     let mut reg = Registry::load_from(&registry_path)?;
+
     if !force && reg.is_installed(&key) {
         let pkg = reg.packages.get(&key).unwrap();
-        println!(
+        output::print_warn(&format!(
             "{} already installed ({}). Use --force to reinstall.",
             key, pkg.version
-        );
+        ));
         return Ok(());
     }
 
     let client = GithubClient::new(config.github_token.clone())?;
+
     let release = match &version {
         Some(v) => client.get_release(&owner, &repo, v).await?,
         None => client.get_release(&owner, &repo, "latest").await?,
@@ -45,45 +53,50 @@ pub async fn handle_install(
     let bin_dir = bin_dir_from(&config.install_dir);
 
     if dry_run {
-        banner::print_info(&format!("[DRY RUN] Would install {}", key.cyan()));
-        banner::print_kv("Release", &release.tag_name);
-        banner::print_kv("Asset", &asset.name);
-        banner::print_kv("Install dir", &pkg_install_dir.display().to_string());
-        banner::print_kv("Binary", &format!("{}/{}", pkg_install_dir.display(), repo));
-        banner::print_kv("Symlink", &format!("{}/{}", bin_dir.display(), repo));
+        output::print_info(&format!("[DRY RUN] Would install {}.", key.cyan()));
+        output::print_kv("Release", &release.tag_name);
+        output::print_kv("Asset", &asset.name);
+        output::print_kv("Install dir", &pkg_install_dir.display().to_string());
+        output::print_kv("Binary", &format!("{}/{}", pkg_install_dir.display(), repo));
+        output::print_kv("Symlink", &format!("{}/{}", bin_dir.display(), repo));
         return Ok(());
     }
 
     if !config.output.quiet {
-        banner::print_header(&format!("Installing {}", key.cyan().bold()));
-        banner::print_kv("Release", &release.tag_name);
-        banner::print_kv("Asset", &asset.name);
-        println!();
+        output::print_info(&format!("Installing {}.", key.cyan().bold()));
+        output::print_kv("Release", &release.tag_name);
+        output::print_kv("Asset", &asset.name);
     }
 
-    let temp_dir = std::env::temp_dir().join(format!("gitclaw-{}-{}", owner, repo));
+    let temp_dir = std::env::temp_dir().join(format!("{}{}-{}", TEMP_DIR_PREFIX, owner, repo));
     std::fs::create_dir_all(&temp_dir)?;
     let download_path = temp_dir.join(&asset.name);
+
     client
         .download_asset(asset, &download_path, config.download.show_progress)
         .await?;
 
+    println!();
+
     if verify || config.download.verify_checksums {
         if let Some((algo, checksum_url)) = find_checksum_file(&asset.name, &release.assets) {
             let checksum_data = client.download_text(&checksum_url).await?;
+
             if let Some(expected) =
-                crate::checksum::parse_checksum_file(&checksum_data, &asset.name)
+                crate::core::checksum::parse_checksum_file(&checksum_data, &asset.name)
             {
                 if !config.output.quiet {
-                    banner::print_info("Verifying checksum...");
+                    output::print_info("Verifying checksum.");
                 }
+
                 verify_file(&download_path, &expected, algo)?;
+
                 if !config.output.quiet {
-                    banner::print_success("Checksum verified");
+                    output::print_success("Checksum verified.");
                 }
             }
         } else if verify {
-            bail!("Checksum verification requested but no checksum file found");
+            bail!("Checksum verification requested but no checksum file found.");
         }
     }
 
@@ -91,7 +104,8 @@ pub async fn handle_install(
     fs::create_dir_all(&pkg_install_dir)?;
 
     if !config.output.quiet {
-        banner::print_info(&format!("Extracting {}...", asset.name));
+        println!();
+        output::print_info(&format!("Extracting {}.", asset.name));
     }
 
     extract_archive(
@@ -99,6 +113,7 @@ pub async fn handle_install(
         &pkg_install_dir,
         config.download.prefer_strip,
     )?;
+
     let binary = find_binary(&pkg_install_dir, &repo)?;
 
     let pkg = InstalledPackage {
@@ -112,6 +127,7 @@ pub async fn handle_install(
         asset_name: asset.name.clone(),
         identifier: repo.clone(),
     };
+
     reg.add(pkg);
     reg.save()?;
 
@@ -120,8 +136,9 @@ pub async fn handle_install(
     create_symlink(&binary_absolute, &repo, &bin_dir)?;
 
     if !config.output.quiet {
-        banner::print_install_complete(&key, &binary.display().to_string());
+        output::print_install_complete(&key, &binary.display().to_string());
     }
+
     Ok(())
 }
 
@@ -137,13 +154,16 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
     let key = format!("{}/{}", owner, repo);
     let registry_path = registry_path_from(&config.install_dir);
     let reg = Registry::load_from(&registry_path)?;
+
     if !reg.is_installed(&key) {
-        bail!("{} not installed. Use 'gitclaw install' first.", key);
+        bail!("{} not installed. Use '{} install' first.", key, APP_NAME);
     }
+
     let installed = reg.packages.get(&key).unwrap();
+
     if !config.output.quiet {
-        banner::print_info(&format!(
-            "Checking {} (current: {})...",
+        output::print_info(&format!(
+            "Checking {} (current: {}).",
             key.dimmed(),
             installed.version.dimmed()
         ));
@@ -154,33 +174,38 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
 
     if latest.tag_name == installed.version {
         if !config.output.quiet {
-            banner::print_success(&format!("{} is up to date ({})", key, installed.version));
+            output::print_success(&format!("{} is up to date ({}).", key, installed.version));
         }
         return Ok(());
     }
+
     if !config.output.quiet {
-        banner::print_info(&format!(
-            "Update available: {} -> {}",
+        output::print_info(&format!(
+            "Update available: {} -> {}.",
             installed.version.dimmed(),
             latest.tag_name.green().bold()
         ));
     }
-    crate::registry::uninstall(package, &config.install_dir)?;
+
+    crate::core::registry::uninstall(package, &config.install_dir)?;
     handle_install(package, false, false, false, config).await
 }
 
 async fn update_all(config: &Config) -> Result<()> {
     let registry_path = registry_path_from(&config.install_dir);
     let reg = Registry::load_from(&registry_path)?;
+
     if reg.packages.is_empty() {
         if !config.output.quiet {
-            banner::print_info("No packages installed.");
+            output::print_info("No packages installed.");
         }
         return Ok(());
     }
+
     let names: Vec<String> = reg.packages.keys().cloned().collect();
     let mut updated = 0u32;
     let mut current = 0u32;
+
     for name in &names {
         match update_one(name, config).await {
             Ok(()) => updated += 1,
@@ -188,15 +213,17 @@ async fn update_all(config: &Config) -> Result<()> {
                 if e.to_string().contains("up to date") {
                     current += 1;
                 } else {
-                    warn!("Update {} failed: {}", name, e);
+                    output::print_warn(&format!("Update {} failed: {}.", name, e));
                 }
             }
         }
     }
+
     if !config.output.quiet {
         println!();
-        banner::print_info(&format!("Done: {} updated, {} current", updated, current));
+        output::print_info(&format!("Done: {} updated, {} current.", updated, current));
     }
+
     Ok(())
 }
 
@@ -204,11 +231,13 @@ fn select_best_asset(release: &Release) -> Result<&Asset> {
     if release.assets.is_empty() {
         bail!("Release {} has no assets", release.tag_name);
     }
+
     let platform = Platform::current()?;
+
     match find_matching_asset(release, platform) {
         Ok(asset) => Ok(asset),
         Err(_) if release.assets.len() == 1 => {
-            warn!("No platform match; using sole asset");
+            output::print_warn("No platform match; using sole asset.");
             Ok(&release.assets[0])
         }
         Err(e) => bail!("No suitable asset for {}: {:?}", platform, e),
@@ -216,21 +245,22 @@ fn select_best_asset(release: &Release) -> Result<&Asset> {
 }
 
 fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
-    use walkdir::WalkDir;
     for entry in WalkDir::new(dir).max_depth(3) {
         let entry = entry?;
         if !entry.file_type().is_file() {
             continue;
         }
+
         let stem = entry
             .path()
             .file_stem()
             .unwrap_or_default()
             .to_string_lossy();
+
         if stem != repo_name {
             continue;
         }
-        use std::os::unix::fs::PermissionsExt;
+
         if fs::metadata(entry.path())
             .map(|m| m.permissions().mode() & 0o111 != 0)
             .unwrap_or(false)
@@ -238,12 +268,13 @@ fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
             return Ok(entry.path().to_path_buf());
         }
     }
+
     for entry in WalkDir::new(dir).max_depth(3) {
         let entry = entry?;
         if !entry.file_type().is_file() {
             continue;
         }
-        use std::os::unix::fs::PermissionsExt;
+
         if fs::metadata(entry.path())
             .map(|m| m.permissions().mode() & 0o111 != 0)
             .unwrap_or(false)
@@ -251,15 +282,18 @@ fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
             return Ok(entry.path().to_path_buf());
         }
     }
+
     bail!("No binary found in {}", dir.display())
 }
 
 fn create_symlink(binary: &Path, name: &str, bin_dir: &Path) -> Result<()> {
     fs::create_dir_all(bin_dir)?;
     let link = bin_dir.join(name);
+
     if link.exists() || link.is_symlink() {
         fs::remove_file(&link)?;
     }
+
     std::os::unix::fs::symlink(binary, &link)?;
     Ok(())
 }
@@ -271,21 +305,23 @@ pub async fn handle_install_multiple(
     verify: bool,
     config: &Config,
 ) -> Result<()> {
-    use futures::future::join_all;
-
     let total = packages.len();
+
     if !config.output.quiet {
-        banner::print_info(&format!("Installing {} packages...", total));
+        output::print_info(&format!("Installing {} packages.", total));
     }
 
     let mut tasks = Vec::new();
+
     for pkg in packages {
         let pkg = pkg.clone();
         let config = config.clone();
+
         let task =
             tokio::spawn(
                 async move { handle_install(&pkg, force, dry_run, verify, &config).await },
             );
+
         tasks.push(task);
     }
 
@@ -293,18 +329,19 @@ pub async fn handle_install_multiple(
 
     let mut success = 0;
     let mut failed = 0;
+
     for result in results {
         match result {
             Ok(Ok(())) => success += 1,
             Ok(Err(e)) => {
                 if !config.output.quiet {
-                    eprintln!("Error: {}", e);
+                    output::print_error(&format!("{}", e));
                 }
                 failed += 1;
             }
             Err(e) => {
                 if !config.output.quiet {
-                    eprintln!("Task failed: {}", e);
+                    output::print_error(&format!("Task failed: {}.", e));
                 }
                 failed += 1;
             }
@@ -313,7 +350,7 @@ pub async fn handle_install_multiple(
 
     if !config.output.quiet {
         println!();
-        banner::print_info(&format!("Done: {} succeeded, {} failed", success, failed));
+        output::print_info(&format!("Done: {} succeeded, {} failed.", success, failed));
     }
 
     if failed > 0 {

@@ -94,3 +94,21 @@ fn test_platform_error_display() {
     let msg = format!("{}", err);
     assert!(msg.contains("weirdarch"));
 }
+
+#[test]
+fn test_find_best_asset_ignores_non_linux() {
+    let assets = vec![
+        "app-linux-x86_64.tar.gz",
+        "app-linux-aarch64.tar.gz",
+        "checksums.txt",
+    ];
+
+    assert_eq!(
+        gitclaw::platform::find_best_asset(&assets, gitclaw::platform::Arch::X86_64),
+        Some("app-linux-x86_64.tar.gz")
+    );
+    assert_eq!(
+        gitclaw::platform::find_best_asset(&assets, gitclaw::platform::Arch::Aarch64),
+        Some("app-linux-aarch64.tar.gz")
+    );
+}

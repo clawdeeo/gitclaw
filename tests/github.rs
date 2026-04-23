@@ -176,3 +176,152 @@ fn test_github_client_with_token() {
     let client = gitclaw::github::GithubClient::new(Some("fake-token".to_string()));
     assert!(client.is_ok());
 }
+
+#[test]
+fn test_parse_package_with_url() {
+    use gitclaw::github::parse_package;
+
+    let (owner, repo, version) = parse_package("https://github.com/user/repo").unwrap();
+    assert_eq!(owner, "user");
+    assert_eq!(repo, "repo");
+    assert!(version.is_none());
+}
+
+#[test]
+fn test_find_matching_asset_arch_selection() {
+    use gitclaw::github::{find_matching_asset, Asset, Platform, Release};
+
+    let release = Release {
+        tag_name: "v1.0.0".to_string(),
+        name: Some("Release 1.0.0".to_string()),
+        body: None,
+        assets: vec![
+            Asset {
+                id: 1,
+                name: "app-linux-x86_64.tar.gz".to_string(),
+                browser_download_url: "https://example.com/linux".to_string(),
+                size: 1000,
+            },
+            Asset {
+                id: 2,
+                name: "app-linux-aarch64.tar.gz".to_string(),
+                browser_download_url: "https://example.com/aarch64".to_string(),
+                size: 1000,
+            },
+            Asset {
+                id: 3,
+                name: "checksums.txt".to_string(),
+                browser_download_url: "https://example.com/checksums".to_string(),
+                size: 100,
+            },
+        ],
+    };
+
+    let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+    assert_eq!(asset.name, "app-linux-x86_64.tar.gz");
+
+    let asset = find_matching_asset(&release, Platform::LinuxAarch64).unwrap();
+    assert_eq!(asset.name, "app-linux-aarch64.tar.gz");
+}
+
+#[test]
+fn test_find_matching_asset_generic_linux() {
+    use gitclaw::github::{find_matching_asset, Asset, Platform, Release};
+
+    let release = Release {
+        tag_name: "v1.0.0".to_string(),
+        name: None,
+        body: None,
+        assets: vec![Asset {
+            id: 1,
+            name: "app-linux.tar.gz".to_string(),
+            browser_download_url: "https://example.com/linux".to_string(),
+            size: 1000,
+        }],
+    };
+
+    let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+    assert_eq!(asset.name, "app-linux.tar.gz");
+
+    let asset = find_matching_asset(&release, Platform::LinuxAarch64).unwrap();
+    assert_eq!(asset.name, "app-linux.tar.gz");
+}
+
+#[test]
+fn test_find_matching_asset_deb_rpm() {
+    use gitclaw::github::{find_matching_asset, Asset, Platform, Release};
+
+    let release = Release {
+        tag_name: "v1.0.0".to_string(),
+        name: None,
+        body: None,
+        assets: vec![
+            Asset {
+                id: 1,
+                name: "app_1.0.0_linux_amd64.deb".to_string(),
+                browser_download_url: "https://example.com/deb".to_string(),
+                size: 1000,
+            },
+            Asset {
+                id: 2,
+                name: "app-1.0.0-linux-x86_64.rpm".to_string(),
+                browser_download_url: "https://example.com/rpm".to_string(),
+                size: 1000,
+            },
+        ],
+    };
+
+    let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+    assert!(asset.name.ends_with(".deb") || asset.name.ends_with(".rpm"));
+}
+
+#[test]
+fn test_find_matching_asset_shell_script() {
+    use gitclaw::github::{find_matching_asset, Asset, Platform, Release};
+
+    let release = Release {
+        tag_name: "v1.0.0".to_string(),
+        name: None,
+        body: None,
+        assets: vec![Asset {
+            id: 1,
+            name: "install-linux-x86_64.sh".to_string(),
+            browser_download_url: "https://example.com/sh".to_string(),
+            size: 1000,
+        }],
+    };
+
+    let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+    assert_eq!(asset.name, "install-linux-x86_64.sh");
+}
+
+#[test]
+fn test_find_matching_asset_prefers_specific_arch() {
+    use gitclaw::github::{find_matching_asset, Asset, Platform, Release};
+
+    let release = Release {
+        tag_name: "v1.0.0".to_string(),
+        name: None,
+        body: None,
+        assets: vec![
+            Asset {
+                id: 1,
+                name: "app-linux.tar.gz".to_string(),
+                browser_download_url: "https://example.com/generic".to_string(),
+                size: 1000,
+            },
+            Asset {
+                id: 2,
+                name: "app-linux-x86_64.tar.gz".to_string(),
+                browser_download_url: "https://example.com/specific".to_string(),
+                size: 1000,
+            },
+        ],
+    };
+
+    let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
+    assert_eq!(asset.name, "app-linux-x86_64.tar.gz");
+
+    let asset = find_matching_asset(&release, Platform::LinuxAarch64).unwrap();
+    assert_eq!(asset.name, "app-linux.tar.gz");
+}
