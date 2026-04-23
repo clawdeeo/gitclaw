@@ -2,8 +2,7 @@
 
 [![Main](https://github.com/clawdeeo/gitclaw/actions/workflows/main.yml/badge.svg)](https://github.com/clawdeeo/gitclaw/actions/workflows/main.yml)
 
-Install software from GitHub releases.
-
+Install software from GitHub releases.  
 Also available as `gcw` — a shorter alias for the same binary.
 
 ## Installation
@@ -15,11 +14,9 @@ cargo install --path .
 ## Usage
 
 ```bash
-gcw install clawdeeo/gitclaw
-gcw install clawdeeo/gitclaw@13.0.0
-
+gcw install sharkdp/bat
 gcw list
-gcw update clawdeeo/gitclaw
+gcw update sharkdp/bat
 gcw uninstall gitclaw
 ```
 
