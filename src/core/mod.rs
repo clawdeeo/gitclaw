@@ -1,8 +1,11 @@
+pub mod alias;
 pub mod checksum;
 pub mod config;
 pub mod constants;
 pub mod extract;
 pub mod install;
+pub mod lockfile;
 pub mod registry;
+pub mod semver;
 pub mod updater;
 pub mod util;

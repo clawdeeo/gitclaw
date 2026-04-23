@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-23
+
+### Added
+- Semver range support for install: `gitclaw install user/repo "^1.2.3"`
+- Lockfile: `gitclaw lock` generates `gitclaw.lock` from installed packages
+- Locked install: `gitclaw install --locked` reproduces exact versions from lockfile
+- Package aliases: `gitclaw alias add rg BurntSushi/ripgrep` then `gitclaw install rg`
+- `gitclaw alias list` and `gitclaw alias remove` commands
+- `semver` crate dependency for version constraint parsing
+
 ## [0.3.2] - 2026-04-23
 
 ### Added

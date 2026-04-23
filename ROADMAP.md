@@ -2,7 +2,7 @@
 
 Planned features and improvements toward gitclaw 1.0.0.
 
-## 0.4.0 — Dependency Management
+## 0.4.0 — Dependency Management ✅
 
 **Semver range support**
 

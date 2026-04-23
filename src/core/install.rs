@@ -12,11 +12,13 @@ use crate::core::config::Config;
 use crate::core::constants::{APP_NAME, TEMP_DIR_PREFIX};
 use crate::core::extract::extract_archive;
 use crate::core::registry::{InstalledPackage, Registry};
+use crate::core::semver::{parse_tag_version, VersionConstraint};
 use crate::core::util::{bin_dir_from, registry_path_from};
 use crate::network::github::{
     find_matching_asset, parse_package, Asset, GithubClient, Platform, Release,
 };
 use crate::output;
+use semver::Version;
 
 pub async fn handle_install(
     package: &str,
@@ -25,8 +27,33 @@ pub async fn handle_install(
     verify: bool,
     config: &Config,
 ) -> Result<()> {
-    let (owner, repo, version) = parse_package(package)?;
+    let resolved = if !package.contains('/') {
+        if let Some(alias_target) = crate::core::alias::AliasMap::load(config)?.resolve(package) {
+            output::print_info(&format!("Alias '{}' -> '{}'.", package, alias_target));
+            alias_target.to_string()
+        } else {
+            package.to_string()
+        }
+    } else {
+        package.to_string()
+    };
+
+    let (owner, repo, version) = parse_package(&resolved)?;
     let key = format!("{}/{}", owner, repo);
+
+    let aliases = crate::core::alias::AliasMap::load(config)?;
+    if let Some(alias_target) = aliases.resolve(&repo) {
+        if alias_target != key {
+            output::print_warn(&format!(
+                "Package repo '{}' conflicts with alias '{}' -> '{}'.",
+                repo, repo, alias_target
+            ));
+            output::print_info(
+                "The alias will resolve 'bat' to the aliased target, not this package.",
+            );
+        }
+    }
+    drop(aliases);
 
     let registry_path = registry_path_from(&config.install_dir);
     let mut reg = Registry::load_from(&registry_path)?;
@@ -43,7 +70,14 @@ pub async fn handle_install(
     let client = GithubClient::new(config.github_token.clone())?;
 
     let release = match &version {
-        Some(v) => client.get_release(&owner, &repo, v).await?,
+        Some(v) => {
+            if is_semver_constraint(v) {
+                let constraint = VersionConstraint::parse(v)?;
+                find_matching_release(&client, &owner, &repo, &constraint).await?
+            } else {
+                client.get_release(&owner, &repo, v).await?
+            }
+        }
         None => client.get_release(&owner, &repo, "latest").await?,
     };
 
@@ -187,7 +221,7 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
         ));
     }
 
-    crate::core::registry::uninstall(package, &config.install_dir)?;
+    crate::core::registry::uninstall(package, &config.install_dir, config)?;
     handle_install(package, false, false, false, config).await
 }
 
@@ -358,4 +392,56 @@ pub async fn handle_install_multiple(
     }
 
     Ok(())
+}
+
+fn is_semver_constraint(version: &str) -> bool {
+    version.starts_with('^')
+        || version.starts_with('~')
+        || version.starts_with('>')
+        || version.starts_with('<')
+        || version.starts_with('=')
+}
+
+async fn find_matching_release(
+    client: &GithubClient,
+    owner: &str,
+    repo: &str,
+    constraint: &VersionConstraint,
+) -> Result<Release> {
+    let releases = client.get_releases(owner, repo).await?;
+
+    let mut matching: Vec<Release> = releases
+        .into_iter()
+        .filter(|r| {
+            parse_tag_version(&r.tag_name)
+                .map(|v| constraint.matches(&v))
+                .unwrap_or(false)
+        })
+        .collect();
+
+    if matching.is_empty() {
+        bail!(
+            "No release matching '{}' found for {}/{}.",
+            constraint_display(constraint),
+            owner,
+            repo
+        );
+    }
+
+    matching.sort_by(|a, b| {
+        let va =
+            parse_tag_version(&a.tag_name).unwrap_or_else(|_| Version::parse("0.0.0").unwrap());
+        let vb =
+            parse_tag_version(&b.tag_name).unwrap_or_else(|_| Version::parse("0.0.0").unwrap());
+        vb.cmp(&va)
+    });
+
+    Ok(matching.into_iter().next().unwrap())
+}
+
+fn constraint_display(constraint: &VersionConstraint) -> String {
+    match constraint {
+        VersionConstraint::Exact(v) => format!("= {}", v),
+        VersionConstraint::Range(r) => r.to_string(),
+    }
 }
