@@ -3,12 +3,15 @@ pub mod core;
 pub mod network;
 pub mod output;
 
+pub use core::alias;
 pub use core::checksum;
 pub use core::config;
 pub use core::constants;
 pub use core::extract;
 pub use core::install;
+pub use core::lockfile;
 pub use core::registry;
+pub use core::semver;
 pub use core::updater;
 pub use core::util;
 pub use network::github;

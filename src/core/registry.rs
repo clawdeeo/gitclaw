@@ -7,6 +7,7 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
+use crate::core::config::Config;
 use crate::core::constants::APP_NAME_SHORT;
 use crate::core::util::registry_path_from;
 use crate::output;
@@ -169,7 +170,7 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
+pub fn uninstall(package: &str, install_dir: &Path, config: &Config) -> Result<()> {
     let registry_path = registry_path_from(install_dir);
     let mut reg = Registry::load_from(&registry_path)?;
 
@@ -177,10 +178,19 @@ pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
         let (owner, repo, _) = crate::network::github::parse_package(package)?;
         format!("{}/{}", owner, repo)
     } else {
+        let resolved = if let Some(alias_target) =
+            crate::core::alias::AliasMap::load(config)?.resolve(package)
+        {
+            output::print_info(&format!("Alias '{}' -> '{}'.", package, alias_target));
+            alias_target.to_string()
+        } else {
+            package.to_string()
+        };
+
         let matches: Vec<_> = reg
             .packages
             .values()
-            .filter(|p| p.identifier == package || p.repo == package)
+            .filter(|p| p.identifier == resolved || p.repo == resolved)
             .map(|p| p.name.clone())
             .collect();
 

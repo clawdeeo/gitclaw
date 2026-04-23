@@ -15,9 +15,15 @@ cargo install --path .
 
 ```bash
 gcw install sharkdp/bat
+
+gcw install BurntSushi/ripgrep "^14"
+gcw lock
+gcw install --locked
+gcw alias add rg BurntSushi/ripgrep
+gcw install rg
 gcw list
 gcw update sharkdp/bat
-gcw uninstall gitclaw
+gcw uninstall bat
 ```
 
 ## Configuration

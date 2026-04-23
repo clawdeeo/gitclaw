@@ -86,10 +86,12 @@ Verify → Test → Build
 ## Spec-Driven Development
 
 1. Create `.specs/feature-name.md` from TEMPLATE.md before coding
-2. Define acceptance criteria and test plan
-3. Review spec with user before implementation
-4. Checkpoint at 25%, 50%, 75% for feedback
-5. Delete spec after merge (gitignored, temporary)
+2. Small fixes: skip spec, write a clear PR description
+3. Features: full spec with acceptance criteria
+4. Review spec with user before implementation
+5. Checkpoints tied to deliverables, not percentages
+6. Keep specs in git — archive after merge
+7. Post-mortem lessons go to AGENTS.md, not the spec
 
 ## PR Discipline
 
@@ -101,18 +103,21 @@ Verify → Test → Build
 ## Definition of Done
 
 - [ ] Code complete
-- [ ] Tests pass (`cargo test`)
-- [ ] Lint clean (`cargo fmt && cargo clippy`)
+- [ ] `cargo test` passes
+- [ ] `cargo clippy -- -D warnings` clean
+- [ ] `cargo fmt --check` clean
+- [ ] Run all three locally before pushing
 - [ ] Documentation updated (CHANGELOG, README if needed)
 - [ ] Manual verification done
 - [ ] PR opened and reviewed
 
 ## Post-Mortems
 
-After any significant issue or rework, document:
+After rework or significant issues:
 - What went wrong
 - Root cause
-- Prevention for next time
+- Prevention
+- Add to AGENTS.md so it persists
 
 *Last updated: 2026-04-23*
 

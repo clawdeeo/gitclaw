@@ -25,7 +25,30 @@ pub struct Cli {
 }
 
 #[derive(Subcommand)]
+pub enum AliasAction {
+    #[command(about = "Add a package alias.")]
+    Add {
+        #[arg(help = "Short alias name.")]
+        alias: String,
+        #[arg(help = "Full package name (owner/repo).")]
+        target: String,
+    },
+    #[command(about = "Remove a package alias.")]
+    Remove {
+        #[arg(help = "Alias to remove.")]
+        alias: String,
+    },
+    #[command(about = "List all aliases.")]
+    List {},
+}
+
+#[derive(Subcommand)]
 pub enum Commands {
+    #[command(about = "Manage package aliases.")]
+    Alias {
+        #[command(subcommand)]
+        action: AliasAction,
+    },
     #[command(about = "Install packages from GitHub releases.")]
     Install {
         #[arg(num_args = 1.., help = "Package(s) to install (format: owner/repo or owner/repo@version).")]
@@ -36,6 +59,18 @@ pub enum Commands {
         dry_run: bool,
         #[arg(long, help = "Verify checksums after download.")]
         verify: bool,
+        #[arg(long, help = "Install exact versions from gitclaw.lock.")]
+        locked: bool,
+    },
+    #[command(about = "Generate a lockfile from installed packages.")]
+    Lock {
+        #[arg(
+            short,
+            long,
+            default_value = ".",
+            help = "Directory to write gitclaw.lock to."
+        )]
+        dir: String,
     },
     #[command(about = "List installed packages.")]
     List {

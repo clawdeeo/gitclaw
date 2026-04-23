@@ -230,7 +230,7 @@ impl GithubClient {
             })
     }
 
-    async fn get_releases(
+    pub async fn get_releases(
         &self,
         owner: &str,
         repo: &str,

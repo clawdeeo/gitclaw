@@ -1,6 +1,6 @@
 [package]
 name = "gitclaw"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 
 [[bin]]
@@ -40,6 +40,7 @@ sha2 = "=0.10.8"
 md5 = "=0.7.0"
 colored = "=2.1.0"
 rand = "=0.8.5"
+semver = "1"
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
