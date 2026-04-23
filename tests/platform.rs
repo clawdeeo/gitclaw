@@ -1,13 +1,9 @@
-//! Integration tests for the platform module (Linux only)
-//! Tests the public API from gitclaw::platform
-
 #[test]
 fn test_arch_detection() {
     let arch = gitclaw::platform::detect_arch();
     assert!(arch.is_ok());
 
     let detected = arch.unwrap();
-    // Should be one of the supported variants
     match detected {
         gitclaw::platform::Arch::X86_64 => {}
         gitclaw::platform::Arch::Aarch64 => {}
@@ -17,13 +13,11 @@ fn test_arch_detection() {
 #[test]
 fn test_current_platform() {
     let arch = gitclaw::platform::current_platform();
-    // Verify we got valid arch
     let _ = format!("{:?}", arch);
 }
 
 #[test]
 fn test_arch_variants() {
-    // Test that all Arch variants exist and can be matched
     let variants = vec![
         gitclaw::platform::Arch::X86_64,
         gitclaw::platform::Arch::Aarch64,
@@ -39,14 +33,14 @@ fn test_arch_variants() {
 fn test_score_asset_linux_x86_64() {
     let score =
         gitclaw::platform::score_asset("app-linux-x86_64.tar.gz", gitclaw::platform::Arch::X86_64);
-    assert!(score > 0, "Should match linux-x86_64");
+    assert!(score > 0);
 }
 
 #[test]
 fn test_score_asset_linux_amd64() {
     let score =
         gitclaw::platform::score_asset("app-linux-amd64.tar.gz", gitclaw::platform::Arch::X86_64);
-    assert!(score > 0, "Should match linux-amd64 as x86_64");
+    assert!(score > 0);
 }
 
 #[test]
@@ -55,14 +49,13 @@ fn test_score_asset_linux_aarch64() {
         "app-linux-aarch64.tar.gz",
         gitclaw::platform::Arch::Aarch64,
     );
-    assert!(score > 0, "Should match linux-aarch64");
+    assert!(score > 0);
 }
 
 #[test]
 fn test_score_asset_no_match() {
-    // Score may be > 0 for generic matches (filename similarity)
     let score = gitclaw::platform::score_asset("checksums.txt", gitclaw::platform::Arch::X86_64);
-    assert!(score < 0, "Should not match checksum files");
+    assert!(score < 0);
 }
 
 #[test]
@@ -82,11 +75,8 @@ fn test_find_best_asset_multiple_matches() {
 
 #[test]
 fn test_find_best_asset_no_match() {
-    // Darwin/Windows assets still score points for "linux" in scoring
-    // so we test with something that won't match at all
     let assets = vec!["checksums.txt", "README.md"];
     let best = gitclaw::platform::find_best_asset(&assets, gitclaw::platform::Arch::X86_64);
-    // Should not find a match
     assert!(best.is_none());
 }
 

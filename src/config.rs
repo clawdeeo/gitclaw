@@ -81,8 +81,6 @@ fn default_install_dir() -> PathBuf {
 }
 
 impl Config {
-    /// Loads and merges config from all sources in precedence order:
-    /// env var > project-local > XDG > legacy > defaults
     pub fn load() -> Result<Self> {
         let mut config = Config::default();
 

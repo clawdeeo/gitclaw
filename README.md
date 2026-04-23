@@ -4,7 +4,7 @@
 
 Install software from GitHub releases.
 
-Also available as `gcw` — a shorter alias.
+Also available as `gcw` — a shorter alias for the same binary.
 
 ## Installation
 
@@ -15,24 +15,18 @@ cargo install --path .
 ## Usage
 
 ```bash
-# Install latest version
-gitclaw install BurntSushi/ripgrep
+gcw install clawdeeo/gitclaw
+gcw install clawdeeo/gitclaw@13.0.0
 
-# Install specific version
-gitclaw install BurntSushi/ripgrep@13.0.0
-
-# List, update, uninstall
-gitclaw list
-gitclaw update BurntSushi/ripgrep
-gitclaw uninstall BurntSushi/ripgrep
-
-# Shell completions
-gitclaw completions bash > ~/.local/share/bash-completion/completions/gitclaw
+gcw list
+gcw update clawdeeo/gitclaw
+gcw uninstall gitclaw
 ```
 
 ## Configuration
 
 Config files (TOML) are merged in order of precedence:
+
 1. `$GITCLAW_CONFIG` env var
 2. `./.gitclaw.toml`
 3. `~/.config/gitclaw/config.toml`
@@ -40,7 +34,7 @@ Config files (TOML) are merged in order of precedence:
 
 ```toml
 install_dir = "~/bin"
-github_token = "ghp_xxx"  # Optional: higher rate limits, private repos
+github_token = "ghp_xxx"
 
 [download]
 show_progress = true
@@ -56,7 +50,7 @@ verbose = false
 1. Query GitHub API for release metadata
 2. Match asset to current OS/architecture
 3. Download with progress bar
-4. Extract: supports tar.gz, zip, tar.bz2, tar.xz, tar.zst, .deb, and plain binaries
+4. Extract — supports tar.gz, zip, tar.bz2, tar.xz, tar.zst, .deb, and plain binaries
 5. Install binary to `~/.gitclaw/bin/`
 
 ## Supported Platforms
@@ -64,8 +58,8 @@ verbose = false
 | OS | x86_64 | aarch64 |
 |----|--------|---------|
 | Linux | yes | yes |
-| macOS | yes | yes |
-| Windows | yes | yes |
+| macOS | no | no |
+| Windows | no | no |
 
 ## Development
 
@@ -80,4 +74,4 @@ See [AGENTS.md](AGENTS.md) for contribution guidelines.
 
 ## License
 
-MIT License - Copyright (c) 2026 Francesco Sardone (Airscript)
+MIT License — Copyright (c) 2026 Francesco Sardone (Airscript)

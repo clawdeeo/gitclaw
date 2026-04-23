@@ -12,7 +12,6 @@ use tracing::{debug, warn};
 
 const GITHUB_API: &str = "https://api.github.com";
 
-/// Errors that can occur when interacting with the GitHub API
 #[derive(Error, Debug)]
 pub enum GithubError {
     #[error("GitHub API error: {status} - {message}")]
@@ -41,7 +40,6 @@ pub enum GithubError {
     ParseError(String),
 }
 
-/// A GitHub release
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Release {
     pub tag_name: String,
@@ -50,7 +48,6 @@ pub struct Release {
     pub assets: Vec<Asset>,
 }
 
-/// A release asset
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Asset {
     pub id: u64,
@@ -59,7 +56,6 @@ pub struct Asset {
     pub size: u64,
 }
 
-/// Platform specification for asset matching (Linux only)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Platform {
     LinuxX86_64,
@@ -76,7 +72,6 @@ impl std::fmt::Display for Platform {
 }
 
 impl Platform {
-    /// Get platform aliases for matching
     fn aliases(&self) -> &[&'static str] {
         match self {
             Platform::LinuxX86_64 => &[
@@ -95,13 +90,11 @@ impl Platform {
         }
     }
 
-    /// Get supported archive extensions
     #[allow(dead_code)]
     fn extensions(&self) -> &[&'static str] {
         &[".tar.gz", ".tar.xz", ".tar.bz2", ".tgz", ".zip"]
     }
 
-    /// Detect the current platform
     pub fn current() -> Result<Self> {
         match std::env::consts::ARCH {
             "x86_64" => Ok(Platform::LinuxX86_64),
@@ -111,7 +104,6 @@ impl Platform {
     }
 }
 
-/// GitHub API client
 #[derive(Debug, Clone)]
 pub struct GithubClient {
     client: Client,
@@ -119,7 +111,6 @@ pub struct GithubClient {
 }
 
 impl GithubClient {
-    /// Create a new GitHub client with optional authentication token
     pub fn new(token: Option<String>) -> Result<Self> {
         let client = Client::builder()
             .user_agent("gitclaw/0.1.0")
@@ -128,7 +119,6 @@ impl GithubClient {
         Ok(Self { client, token })
     }
 
-    /// Add authentication header to request if token is available
     fn add_auth(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
         if let Some(ref t) = self.token {
             req.bearer_auth(t)
@@ -137,8 +127,6 @@ impl GithubClient {
         }
     }
 
-    /// Get a specific release by version tag
-    /// If version is "latest", fetches the latest release
     pub async fn get_release(
         &self,
         user: &str,
@@ -152,14 +140,12 @@ impl GithubClient {
         }
     }
 
-    /// Get a release by tag name
     async fn get_release_by_tag(
         &self,
         owner: &str,
         repo: &str,
         tag: &str,
     ) -> std::result::Result<Release, GithubError> {
-        // Normalize tag - GitHub tags typically start with 'v'
         let tag_normalized = if tag.starts_with('v') {
             tag.to_string()
         } else {
@@ -178,7 +164,6 @@ impl GithubClient {
             return Ok(resp.json().await?);
         }
 
-        // If the 'v' prefix version failed, try without
         if tag_normalized.starts_with('v') && tag_normalized != tag {
             let url = format!(
                 "{}/repos/{}/{}/releases/tags/{}",
@@ -190,11 +175,9 @@ impl GithubClient {
             }
         }
 
-        // Try searching in all releases
         warn!("Tag endpoint failed, searching all releases for {}", tag);
         match self.get_releases(owner, repo).await {
             Ok(releases) => {
-                // Try matching with various tag formats
                 let candidates = [
                     tag.to_string(),
                     tag_normalized.clone(),
@@ -216,7 +199,6 @@ impl GithubClient {
         })
     }
 
-    /// Get the latest release
     async fn get_latest_release(
         &self,
         owner: &str,
@@ -229,7 +211,6 @@ impl GithubClient {
             return Ok(resp.json().await?);
         }
 
-        // Fallback: get all releases and find latest non-draft, non-prerelease
         warn!("Latest endpoint failed, using fallback");
         let releases = self.get_releases(owner, repo).await?;
         releases
@@ -242,7 +223,6 @@ impl GithubClient {
             })
     }
 
-    /// Get all releases for a repository
     async fn get_releases(
         &self,
         owner: &str,
@@ -261,19 +241,16 @@ impl GithubClient {
         Ok(resp.json().await?)
     }
 
-    /// Download an asset to a file path with optional progress bar
     pub async fn download_asset(
         &self,
         asset: &Asset,
         path: &Path,
         show_progress: bool,
     ) -> std::result::Result<(), GithubError> {
-        // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
 
-        // Start download
         let resp = self
             .add_auth(self.client.get(&asset.browser_download_url))
             .send()
@@ -289,7 +266,6 @@ impl GithubClient {
         let total = resp.content_length().unwrap_or(asset.size);
 
         if show_progress {
-            // Create progress bar
             let pb = ProgressBar::new(total);
             pb.set_style(
                 ProgressStyle::default_bar()
@@ -298,7 +274,6 @@ impl GithubClient {
                     .progress_chars("█▓░"),
             );
 
-            // Stream to file with progress updates
             let mut file = std::fs::File::create(path)?;
             let mut downloaded: u64 = 0;
 
@@ -313,7 +288,6 @@ impl GithubClient {
 
             pb.finish_with_message("Downloaded");
         } else {
-            // Download without progress bar
             let mut file = std::fs::File::create(path)?;
             use futures::StreamExt;
             let mut stream = resp.bytes_stream();
@@ -326,7 +300,6 @@ impl GithubClient {
         Ok(())
     }
 
-    /// Download text content from URL
     pub async fn download_text(&self, url: &str) -> std::result::Result<String, GithubError> {
         let resp = self.add_auth(self.client.get(url)).send().await?;
         if !resp.status().is_success() {
@@ -339,12 +312,10 @@ impl GithubClient {
     }
 }
 
-/// Find the best matching asset for a given platform
 pub fn find_matching_asset(
     release: &Release,
     platform: Platform,
 ) -> std::result::Result<&Asset, GithubError> {
-    // Filter out checksum files first
     let candidates: Vec<&Asset> = release
         .assets
         .iter()
@@ -358,7 +329,6 @@ pub fn find_matching_asset(
         });
     }
 
-    // Score each candidate
     let aliases = platform.aliases();
     let mut best: Option<(i32, &Asset)> = None;
 
@@ -366,7 +336,6 @@ pub fn find_matching_asset(
         let name_lower = asset.name.to_lowercase();
         let mut score = 0;
 
-        // Check platform aliases (specific arch match = +10)
         for alias in aliases {
             if name_lower.contains(alias) {
                 score += 10;
@@ -374,14 +343,11 @@ pub fn find_matching_asset(
             }
         }
 
-        // Generic "linux" match (no arch specified) = +5
         if score == 0 && name_lower.contains("linux") {
             score += 5;
         }
 
-        // Only consider archives if platform matched
         if score >= 5 {
-            // Prefer archives over bare binaries
             if name_lower.ends_with(".tar.gz")
                 || name_lower.ends_with(".tgz")
                 || name_lower.ends_with(".tar.xz")
@@ -394,13 +360,11 @@ pub fn find_matching_asset(
             {
                 score += 5;
             }
-            // Shell scripts get small bonus
             if name_lower.ends_with(".sh") {
                 score += 2;
             }
         }
 
-        // Avoid checksum-like names
         if name_lower.contains("checksum")
             || name_lower.contains("sha256")
             || name_lower.contains("sha512")
@@ -426,7 +390,6 @@ pub fn find_matching_asset(
         })
 }
 
-/// Check if a filename is a checksum file
 fn is_checksum_file(name: &str) -> bool {
     let lower = name.to_lowercase();
     lower.ends_with(".sha256")
@@ -438,7 +401,6 @@ fn is_checksum_file(name: &str) -> bool {
         || lower.contains("checksum")
 }
 
-/// Parse a package string like "user/repo" or "user/repo@version"
 pub fn parse_package(input: &str) -> Result<(String, String, Option<String>)> {
     let s = input
         .trim_start_matches("https://github.com/")
@@ -457,7 +419,6 @@ pub fn parse_package(input: &str) -> Result<(String, String, Option<String>)> {
     Ok((parts[0].to_string(), parts[1].to_string(), version))
 }
 
-/// Search and display releases for a package
 pub async fn search_releases(package: &str, limit: usize, config: &Config) -> Result<()> {
     let (owner, repo, _) = parse_package(package)?;
     banner::print_header(&format!("Releases for {}/{}", owner.cyan(), repo.cyan()));
@@ -479,24 +440,22 @@ pub async fn search_releases(package: &str, limit: usize, config: &Config) -> Re
     }
 
     for r in releases.iter().take(limit) {
-        banner::print_separator();
         println!(
             "{} {}",
             r.tag_name.green().bold(),
-            r.name.as_deref().unwrap_or("-").dimmed()
+            r.name.as_deref().unwrap_or("").dimmed()
         );
         for a in &r.assets {
             println!(
-                "  {} {} {}",
-                "•".dimmed(),
+                "  {} {}",
                 a.name.dimmed(),
                 format!("({})", format_size(a.size)).cyan()
             );
         }
+        println!();
     }
 
     if releases.len() > limit {
-        banner::print_separator();
         banner::print_info(&format!("... and {} more releases", releases.len() - limit));
     }
 
@@ -596,7 +555,6 @@ mod tests {
 
     #[test]
     fn test_find_matching_asset_generic_linux() {
-        // Test generic "linux" assets (no arch specified)
         let release = Release {
             tag_name: "v1.0.0".to_string(),
             name: None,
@@ -609,7 +567,6 @@ mod tests {
             }],
         };
 
-        // Generic linux should match both x86_64 and aarch64 (lower priority)
         let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
         assert_eq!(asset.name, "app-linux.tar.gz");
 
@@ -619,7 +576,6 @@ mod tests {
 
     #[test]
     fn test_find_matching_asset_deb_rpm() {
-        // Test .deb and .rpm packages
         let release = Release {
             tag_name: "v1.0.0".to_string(),
             name: None,
@@ -641,13 +597,11 @@ mod tests {
         };
 
         let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
-        // Should prefer .deb or .rpm with archive bonus
         assert!(asset.name.ends_with(".deb") || asset.name.ends_with(".rpm"));
     }
 
     #[test]
     fn test_find_matching_asset_shell_script() {
-        // Test .sh shell scripts get small bonus
         let release = Release {
             tag_name: "v1.0.0".to_string(),
             name: None,
@@ -666,7 +620,6 @@ mod tests {
 
     #[test]
     fn test_find_matching_asset_prefers_specific_arch() {
-        // When specific arch is available, prefer it over generic
         let release = Release {
             tag_name: "v1.0.0".to_string(),
             name: None,
@@ -687,11 +640,9 @@ mod tests {
             ],
         };
 
-        // Should prefer the x86_64 specific asset
         let asset = find_matching_asset(&release, Platform::LinuxX86_64).unwrap();
         assert_eq!(asset.name, "app-linux-x86_64.tar.gz");
 
-        // aarch64 should fall back to generic
         let asset = find_matching_asset(&release, Platform::LinuxAarch64).unwrap();
         assert_eq!(asset.name, "app-linux.tar.gz");
     }

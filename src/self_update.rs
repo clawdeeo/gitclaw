@@ -11,17 +11,14 @@ use crate::github::{find_matching_asset, GithubClient, Platform};
 const REPO_OWNER: &str = "clawdeeo";
 const REPO_NAME: &str = "gitclaw";
 
-/// Get the current executable path
 fn current_executable() -> Result<PathBuf> {
     env::current_exe().context("Failed to get current executable path")
 }
 
-/// Get the current version from Cargo.toml
 fn current_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-/// Check for updates without installing
 pub async fn check_for_update(config: &Config) -> Result<()> {
     let client = GithubClient::new(config.github_token.clone())?;
     let release = client.get_release(REPO_OWNER, REPO_NAME, "latest").await?;
@@ -32,6 +29,7 @@ pub async fn check_for_update(config: &Config) -> Result<()> {
     banner::print_header("Self Update");
     banner::print_kv("Current version", &current);
     banner::print_kv("Latest version", &latest);
+    println!();
 
     if latest == current {
         banner::print_success("gitclaw is up to date!");
@@ -47,7 +45,6 @@ pub async fn check_for_update(config: &Config) -> Result<()> {
     Ok(())
 }
 
-/// Perform self-update
 pub async fn perform_update(config: &Config) -> Result<()> {
     let client = GithubClient::new(config.github_token.clone())?;
     let release = client.get_release(REPO_OWNER, REPO_NAME, "latest").await?;
@@ -70,7 +67,6 @@ pub async fn perform_update(config: &Config) -> Result<()> {
         latest.green().bold()
     ));
 
-    // Find matching asset for current platform
     let platform = Platform::current()?;
     let asset = find_matching_asset(&release, platform)
         .map_err(|_| anyhow!("No suitable asset found for platform: {}", platform))?;
@@ -79,7 +75,6 @@ pub async fn perform_update(config: &Config) -> Result<()> {
         banner::print_info(&format!("Downloading: {}", asset.name.dimmed()));
     }
 
-    // Download to temp location
     let temp_dir = std::env::temp_dir().join("gitclaw-self-update");
     std::fs::create_dir_all(&temp_dir)?;
     let download_path = temp_dir.join(&asset.name);
@@ -88,10 +83,8 @@ pub async fn perform_update(config: &Config) -> Result<()> {
         .download_asset(asset, &download_path, config.download.show_progress)
         .await?;
 
-    // Get current executable path
     let current_exe = current_executable()?;
 
-    // Handle based on archive type vs direct binary
     if asset.name.ends_with(".tar.gz")
         || asset.name.ends_with(".zip")
         || asset.name.ends_with(".tar.xz")
@@ -112,7 +105,6 @@ pub async fn perform_update(config: &Config) -> Result<()> {
     Ok(())
 }
 
-/// Find binary in extracted directory
 fn find_binary(dir: &std::path::Path, name: &str) -> Result<PathBuf> {
     use walkdir::WalkDir;
 
@@ -133,12 +125,10 @@ fn find_binary(dir: &std::path::Path, name: &str) -> Result<PathBuf> {
     bail!("Binary '{}' not found in extracted archive", name)
 }
 
-/// Replace current binary with new one
 #[cfg(unix)]
 fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
-    // On Unix: write to temp file, then rename (atomic)
     let backup = current.with_extension("backup");
     std::fs::rename(current, &backup)?;
     match std::fs::copy(new, current) {
@@ -158,7 +148,6 @@ fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()
 
 #[cfg(windows)]
 fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()> {
-    // On Windows: rename current (in-use files can't be overwritten)
     let backup = current.with_extension("exe.backup");
     std::fs::rename(current, &backup)?;
     match std::fs::copy(new, current) {

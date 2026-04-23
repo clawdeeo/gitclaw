@@ -1,9 +1,6 @@
-//! Tests for checksum verification module
-
 use std::io::Write;
 use tempfile::TempDir;
 
-/// Test detecting checksum file types
 #[test]
 fn test_is_checksum_file() {
     assert_eq!(
@@ -21,7 +18,6 @@ fn test_is_checksum_file() {
     assert_eq!(gitclaw::checksum::is_checksum_file("app.tar.gz"), None);
 }
 
-/// Test calculating SHA256 checksum
 #[test]
 fn test_calculate_checksum_sha256() {
     let temp_dir = TempDir::new().unwrap();
@@ -36,14 +32,12 @@ fn test_calculate_checksum_sha256() {
     )
     .unwrap();
 
-    // Known SHA256 hash for "hello world"
     assert_eq!(
         hash,
         "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
     );
 }
 
-/// Test parsing checksum file
 #[test]
 fn test_parse_checksum_file() {
     let content = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9  test.txt\n";
@@ -54,7 +48,6 @@ fn test_parse_checksum_file() {
     );
 }
 
-/// Test parsing checksum file with binary marker
 #[test]
 fn test_parse_checksum_file_binary_marker() {
     let content = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9 *test.txt\n";
@@ -65,15 +58,15 @@ fn test_parse_checksum_file_binary_marker() {
     );
 }
 
-/// Test parsing checksum file with no match
 #[test]
 fn test_parse_checksum_file_no_match() {
     let content = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9  other.txt\n";
-    let result = gitclaw::checksum::parse_checksum_file(content, "test.txt");
-    assert_eq!(result, None);
+    assert_eq!(
+        gitclaw::checksum::parse_checksum_file(content, "test.txt"),
+        None
+    );
 }
 
-/// Test parsing checksum file with comments
 #[test]
 fn test_parse_checksum_file_with_comments() {
     let content = "# This is a comment\nb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9  test.txt\n";
@@ -84,7 +77,6 @@ fn test_parse_checksum_file_with_comments() {
     );
 }
 
-/// Test verifying file with correct checksum
 #[test]
 fn test_verify_file_success() {
     let temp_dir = TempDir::new().unwrap();
@@ -101,7 +93,6 @@ fn test_verify_file_success() {
     assert!(result.is_ok());
 }
 
-/// Test verifying file with wrong checksum
 #[test]
 fn test_verify_file_failure() {
     let temp_dir = TempDir::new().unwrap();

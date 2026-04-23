@@ -18,6 +18,8 @@ pub struct InstalledPackage {
     pub binary_path: PathBuf,
     pub install_dir: PathBuf,
     pub asset_name: String,
+    #[serde(default)]
+    pub identifier: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -94,73 +96,102 @@ pub fn bin_dir() -> Result<PathBuf> {
 pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
     let registry_path = registry_path_from(install_dir);
     let reg = Registry::load_from(&registry_path)?;
+
     if reg.packages.is_empty() {
-        banner::print_info(
-            "No packages installed. Use 'gitclaw install user/repo' to get started.",
-        );
+        banner::print_info("No packages installed.");
+        banner::print_info("Use 'gcw install user/repo' to get started.");
         return Ok(());
     }
 
-    banner::print_header("Installed Packages");
+    banner::print_header("[Installed Packages]");
 
     if verbose {
-        for pkg in reg.packages.values() {
-            banner::print_separator();
+        let mut pkgs: Vec<_> = reg.packages.values().collect();
+        pkgs.sort_by_key(|p| &p.name);
+
+        for pkg in pkgs {
             banner::print_kv("Package", &pkg.name);
+            banner::print_kv("Identifier", &pkg.identifier);
             banner::print_kv("Version", &pkg.version);
             banner::print_kv("Binary", &pkg.binary_path.display().to_string());
+
             banner::print_kv(
                 "Installed",
                 &pkg.installed_at[..10.min(pkg.installed_at.len())],
             );
+
+            println!();
         }
     } else {
-        // Tabular format
         println!(
             "{}",
             format!(
-                "{:<25} {:<15} {:<30} {}",
-                "Package", "Version", "Path", "Date"
+                "{:<25} {:<20} {:<15} {:<30} {}",
+                "Package", "Identifier", "Version", "Path", "Date"
             )
             .bold()
-            .underline()
         );
-        banner::print_separator();
+
+        println!();
         let mut pkgs: Vec<_> = reg.packages.values().collect();
         pkgs.sort_by_key(|p| &p.name);
+    
         for pkg in pkgs {
             let date = &pkg.installed_at[..10.min(pkg.installed_at.len())];
-            // Simplify path: ~/.gitclaw/packages/... -> ~/.gitclaw/...
+
             let path_short = pkg
                 .binary_path
                 .display()
                 .to_string()
                 .replace(&dirs::home_dir().unwrap().display().to_string(), "~")
                 .replace("/packages/", "/p/");
+
             let path_display = if path_short.len() > 28 {
                 format!("{}...", &path_short[..25])
             } else {
                 path_short
             };
+
             println!(
-                "{:<25} {:<15} {:<30} {}",
+                "{:<25} {:<20} {:<15} {:<30} {}",
                 pkg.name.dimmed(),
-                pkg.version.cyan(),
+                pkg.identifier.cyan(),
+                pkg.version,
                 path_display,
                 date
             );
         }
     }
-    banner::print_separator();
+
+    println!();
     banner::print_info(&format!("{} package(s) installed", reg.packages.len()));
     Ok(())
 }
 
 pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
-    let (owner, repo, _) = crate::github::parse_package(package)?;
-    let key = format!("{}/{}", owner, repo);
     let registry_path = registry_path_from(install_dir);
     let mut reg = Registry::load_from(&registry_path)?;
+
+    let key = if package.contains('/') {
+        let (owner, repo, _) = crate::github::parse_package(package)?;
+        format!("{}/{}", owner, repo)
+    } else {
+        let matches: Vec<_> = reg
+            .packages
+            .values()
+            .filter(|p| p.identifier == package || p.repo == package)
+            .map(|p| p.name.clone())
+            .collect();
+        match matches.len() {
+            0 => anyhow::bail!("Package '{}' not installed", package),
+            1 => matches.into_iter().next().unwrap(),
+            _ => anyhow::bail!(
+                "Multiple packages match '{}'. Use full name (owner/repo).",
+                package
+            ),
+        }
+    };
+
     let pkg = reg
         .remove(&key)
         .ok_or_else(|| anyhow!("{} not installed", key))?;
@@ -168,7 +199,7 @@ pub fn uninstall(package: &str, install_dir: &Path) -> Result<()> {
     if pkg.install_dir.exists() {
         fs::remove_dir_all(&pkg.install_dir).context("Remove install dir")?;
     }
-    let link = install_dir.join("bin").join(&repo);
+    let link = install_dir.join("bin").join(&pkg.repo);
     if link.exists() || link.is_symlink() {
         fs::remove_file(&link).context("Remove symlink")?;
     }
@@ -193,6 +224,7 @@ mod tests {
             binary_path: PathBuf::from("/tmp/binary"),
             install_dir: PathBuf::from("/tmp/install"),
             asset_name: "tool.tar.gz".into(),
+            identifier: "repo".into(),
         };
         assert!(!reg.is_installed("user/repo"));
         reg.add(pkg);

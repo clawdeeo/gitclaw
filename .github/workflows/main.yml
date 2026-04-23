@@ -3,17 +3,18 @@ name: Main
 on:
   push:
     branches: [main]
+
   pull_request:
     branches: [main]
 
 jobs:
-  Verify:
+  verify:
     uses: ./.github/workflows/verify.yml
 
-  Build:
-    needs: Verify
+  build:
+    needs: verify
     uses: ./.github/workflows/build.yml
 
-  Test:
-    needs: Build
+  test:
+    needs: build
     uses: ./.github/workflows/test.yml

@@ -45,27 +45,22 @@ pub async fn handle_install(
     let bin_dir = bin_dir_from(&config.install_dir);
 
     if dry_run {
-        banner::print_separator();
         banner::print_info(&format!("[DRY RUN] Would install {}", key.cyan()));
-        banner::print_separator();
         banner::print_kv("Release", &release.tag_name);
         banner::print_kv("Asset", &asset.name);
         banner::print_kv("Install dir", &pkg_install_dir.display().to_string());
         banner::print_kv("Binary", &format!("{}/{}", pkg_install_dir.display(), repo));
         banner::print_kv("Symlink", &format!("{}/{}", bin_dir.display(), repo));
-        banner::print_separator();
         return Ok(());
     }
 
     if !config.output.quiet {
-        banner::print_separator();
         banner::print_header(&format!("Installing {}", key.cyan().bold()));
         banner::print_kv("Release", &release.tag_name);
         banner::print_kv("Asset", &asset.name);
-        banner::print_separator();
+        println!();
     }
 
-    // Download to a temporary location
     let temp_dir = std::env::temp_dir().join(format!("gitclaw-{}-{}", owner, repo));
     std::fs::create_dir_all(&temp_dir)?;
     let download_path = temp_dir.join(&asset.name);
@@ -73,7 +68,6 @@ pub async fn handle_install(
         .download_asset(asset, &download_path, config.download.show_progress)
         .await?;
 
-    // Verify checksum if requested or configured
     if verify || config.download.verify_checksums {
         if let Some((algo, checksum_url)) = find_checksum_file(&asset.name, &release.assets) {
             let checksum_data = client.download_text(&checksum_url).await?;
@@ -81,7 +75,7 @@ pub async fn handle_install(
                 crate::checksum::parse_checksum_file(&checksum_data, &asset.name)
             {
                 if !config.output.quiet {
-                    println!("Verifying checksum...");
+                    banner::print_info("Verifying checksum...");
                 }
                 verify_file(&download_path, &expected, algo)?;
                 if !config.output.quiet {
@@ -116,6 +110,7 @@ pub async fn handle_install(
         binary_path: binary.clone(),
         install_dir: pkg_install_dir.clone(),
         asset_name: asset.name.clone(),
+        identifier: repo.clone(),
     };
     reg.add(pkg);
     reg.save()?;
@@ -125,9 +120,7 @@ pub async fn handle_install(
     create_symlink(&binary_absolute, &repo, &bin_dir)?;
 
     if !config.output.quiet {
-        banner::print_separator();
         banner::print_install_complete(&key, &binary.display().to_string());
-        banner::print_separator();
     }
     Ok(())
 }
@@ -201,7 +194,7 @@ async fn update_all(config: &Config) -> Result<()> {
         }
     }
     if !config.output.quiet {
-        banner::print_separator();
+        println!();
         banner::print_info(&format!("Done: {} updated, {} current", updated, current));
     }
     Ok(())
@@ -271,7 +264,6 @@ fn create_symlink(binary: &Path, name: &str, bin_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Install multiple packages in parallel
 pub async fn handle_install_multiple(
     packages: &[String],
     force: bool,
@@ -283,7 +275,7 @@ pub async fn handle_install_multiple(
 
     let total = packages.len();
     if !config.output.quiet {
-        println!("Installing {} packages...", total);
+        banner::print_info(&format!("Installing {} packages...", total));
     }
 
     let mut tasks = Vec::new();
@@ -320,7 +312,8 @@ pub async fn handle_install_multiple(
     }
 
     if !config.output.quiet {
-        println!("\nDone: {} succeeded, {} failed", success, failed);
+        println!();
+        banner::print_info(&format!("Done: {} succeeded, {} failed", success, failed));
     }
 
     if failed > 0 {

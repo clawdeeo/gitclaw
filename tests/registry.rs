@@ -1,5 +1,4 @@
-//! Integration tests for the registry module
-//! Tests the public API from gitclaw::registry
+use std::path::PathBuf;
 
 #[test]
 fn test_installed_package_struct() {
@@ -9,15 +8,17 @@ fn test_installed_package_struct() {
         repo: "ripgrep".to_string(),
         version: "13.0.0".to_string(),
         installed_at: chrono::Utc::now().to_rfc3339(),
-        binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/rg"),
-        install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/BurntSushi/ripgrep"),
+        binary_path: PathBuf::from("/home/user/.gitclaw/bin/rg"),
+        install_dir: PathBuf::from("/home/user/.gitclaw/packages/BurntSushi/ripgrep"),
         asset_name: "ripgrep-13.0.0-x86_64-unknown-linux-musl.tar.gz".to_string(),
+        identifier: "ripgrep".to_string(),
     };
 
     assert_eq!(pkg.name, "BurntSushi/ripgrep");
     assert_eq!(pkg.owner, "BurntSushi");
     assert_eq!(pkg.repo, "ripgrep");
     assert_eq!(pkg.version, "13.0.0");
+    assert_eq!(pkg.identifier, "ripgrep");
     assert_eq!(
         pkg.asset_name,
         "ripgrep-13.0.0-x86_64-unknown-linux-musl.tar.gz"
@@ -40,9 +41,10 @@ fn test_registry_add() {
         repo: "package".to_string(),
         version: "1.0.0".to_string(),
         installed_at: chrono::Utc::now().to_rfc3339(),
-        binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/package"),
-        install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/test/package"),
+        binary_path: PathBuf::from("/home/user/.gitclaw/bin/package"),
+        install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/package"),
         asset_name: "package-1.0.0.tar.gz".to_string(),
+        identifier: "package".to_string(),
     };
 
     registry.packages.insert(pkg.name.clone(), pkg);
@@ -62,9 +64,10 @@ fn test_registry_remove() {
             repo: "pkg1".to_string(),
             version: "1.0.0".to_string(),
             installed_at: chrono::Utc::now().to_rfc3339(),
-            binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/pkg1"),
-            install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/user1/pkg1"),
+            binary_path: PathBuf::from("/home/user/.gitclaw/bin/pkg1"),
+            install_dir: PathBuf::from("/home/user/.gitclaw/packages/user1/pkg1"),
             asset_name: "pkg1.tar.gz".to_string(),
+            identifier: "pkg1".to_string(),
         },
     );
 
@@ -76,9 +79,10 @@ fn test_registry_remove() {
             repo: "pkg2".to_string(),
             version: "2.0.0".to_string(),
             installed_at: chrono::Utc::now().to_rfc3339(),
-            binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/pkg2"),
-            install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/user2/pkg2"),
+            binary_path: PathBuf::from("/home/user/.gitclaw/bin/pkg2"),
+            install_dir: PathBuf::from("/home/user/.gitclaw/packages/user2/pkg2"),
             asset_name: "pkg2.tar.gz".to_string(),
+            identifier: "pkg2".to_string(),
         },
     );
 
@@ -100,9 +104,10 @@ fn test_registry_get() {
         repo: "pkg".to_string(),
         version: "1.0.0".to_string(),
         installed_at: chrono::Utc::now().to_rfc3339(),
-        binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/pkg"),
-        install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
+        binary_path: PathBuf::from("/home/user/.gitclaw/bin/pkg"),
+        install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
         asset_name: "pkg.tar.gz".to_string(),
+        identifier: "pkg".to_string(),
     };
 
     registry.packages.insert(pkg.name.clone(), pkg);
@@ -128,9 +133,10 @@ fn test_registry_is_installed() {
             repo: "package".to_string(),
             version: "1.0.0".to_string(),
             installed_at: chrono::Utc::now().to_rfc3339(),
-            binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/package"),
-            install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/test/package"),
+            binary_path: PathBuf::from("/home/user/.gitclaw/bin/package"),
+            install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/package"),
             asset_name: "package.tar.gz".to_string(),
+            identifier: "package".to_string(),
         },
     );
 
@@ -149,60 +155,54 @@ fn test_serialize_deserialize() {
             repo: "pkg".to_string(),
             version: "1.0.0".to_string(),
             installed_at: chrono::Utc::now().to_rfc3339(),
-            binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/pkg"),
-            install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
+            binary_path: PathBuf::from("/home/user/.gitclaw/bin/pkg"),
+            install_dir: PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
             asset_name: "pkg.tar.gz".to_string(),
+            identifier: "pkg".to_string(),
         },
     );
 
-    // Serialize
     let serialized = toml::to_string(&registry).unwrap();
     assert!(serialized.contains("test/pkg"));
     assert!(serialized.contains("1.0.0"));
 
-    // Deserialize
     let deserialized: gitclaw::registry::Registry = toml::from_str(&serialized).unwrap();
     assert_eq!(deserialized.packages.len(), 1);
     assert!(deserialized.packages.contains_key("test/pkg"));
 }
 
 #[test]
+fn test_serialize_deserialize_without_identifier() {
+    let toml_str = r#"
+[packages."legacy/pkg"]
+name = "legacy/pkg"
+owner = "legacy"
+repo = "pkg"
+version = "1.0.0"
+installed_at = "2024-01-01T00:00:00Z"
+binary_path = "/home/user/.gitclaw/bin/pkg"
+install_dir = "/home/user/.gitclaw/packages/legacy/pkg"
+asset_name = "pkg.tar.gz"
+"#;
+
+    let registry: gitclaw::registry::Registry = toml::from_str(toml_str).unwrap();
+    assert_eq!(registry.packages.len(), 1);
+    let pkg = registry.packages.get("legacy/pkg").unwrap();
+    assert_eq!(pkg.identifier, "");
+}
+
+#[test]
 fn test_bin_dir() {
-    let result = gitclaw::registry::bin_dir();
-    // May fail if HOME is not set, which is OK in test environment
-    let _ = result;
+    let _ = gitclaw::registry::bin_dir();
 }
 
 #[test]
 fn test_gitclaw_home() {
-    let result = gitclaw::registry::gitclaw_home();
-    // May fail if HOME is not set, which is OK in test environment
-    let _ = result;
+    let _ = gitclaw::registry::gitclaw_home();
 }
 
 #[test]
-fn test_installed_package_equality() {
-    let pkg1 = gitclaw::registry::InstalledPackage {
-        name: "test/pkg".to_string(),
-        owner: "test".to_string(),
-        repo: "pkg".to_string(),
-        version: "1.0.0".to_string(),
-        installed_at: chrono::Utc::now().to_rfc3339(),
-        binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/pkg"),
-        install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
-        asset_name: "pkg.tar.gz".to_string(),
-    };
-
-    let pkg2 = gitclaw::registry::InstalledPackage {
-        name: "test/pkg".to_string(),
-        owner: "test".to_string(),
-        repo: "pkg".to_string(),
-        version: "1.0.0".to_string(),
-        installed_at: pkg1.installed_at.clone(),
-        binary_path: std::path::PathBuf::from("/home/user/.gitclaw/bin/pkg"),
-        install_dir: std::path::PathBuf::from("/home/user/.gitclaw/packages/test/pkg"),
-        asset_name: "pkg.tar.gz".to_string(),
-    };
-
-    assert_eq!(pkg1.name, pkg2.name);
+fn test_registry_is_not_installed() {
+    let registry = gitclaw::registry::Registry::default();
+    assert!(!registry.is_installed("nonexistent/package"));
 }

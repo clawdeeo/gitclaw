@@ -24,7 +24,6 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Install packages from GitHub releases
     #[command(about = "Install packages from GitHub releases")]
     Install {
         #[arg(num_args = 1.., help = "Package(s) to install (format: owner/repo or owner/repo@version)")]
@@ -36,25 +35,21 @@ pub enum Commands {
         #[arg(long, help = "Verify checksums after download")]
         verify: bool,
     },
-    /// List installed packages
     #[command(about = "List installed packages")]
     List {
         #[arg(short, long, help = "Show detailed information")]
         verbose: bool,
     },
-    /// Update installed packages
     #[command(about = "Update installed packages")]
     Update {
         #[arg(help = "Package to update (omit to update all)")]
         package: Option<String>,
     },
-    /// Uninstall a package
     #[command(about = "Uninstall a package")]
     Uninstall {
-        #[arg(help = "Package to uninstall (format: owner/repo)")]
+        #[arg(help = "Package to uninstall (format: owner/repo or identifier)")]
         package: String,
     },
-    /// Search for releases on GitHub
     #[command(about = "Search for releases on GitHub")]
     Search {
         #[arg(help = "Repository to search (format: owner/repo)")]
@@ -67,26 +62,21 @@ pub enum Commands {
         )]
         limit: usize,
     },
-    /// Generate shell completions
     #[command(about = "Generate shell completions")]
     Completions {
         #[arg(value_enum, help = "Shell to generate completions for")]
         shell: Shell,
     },
-    /// Show platform information
     #[command(about = "Show platform information")]
     Platform {},
-    /// Update gitclaw itself
     #[command(name = "self", about = "Update gitclaw to the latest version")]
     SelfUpdate {
-        /// Only check for updates, don't install
         #[arg(long, help = "Only check for updates, don't install")]
         check: bool,
     },
-    /// Run an installed package
     #[command(about = "Run an installed package")]
     Run {
-        #[arg(help = "Package to run (format: owner/repo)")]
+        #[arg(help = "Package to run (format: owner/repo or identifier)")]
         package: String,
         #[arg(trailing_var_arg = true, help = "Arguments to pass to the package")]
         args: Vec<String>,

@@ -1,141 +1,107 @@
-# ROADMAP - Gitclaw Evolution
+# ROADMAP
 
-> Planned features and improvements for gitclaw.
-> Completed features are removed from this document.
+Planned features and improvements toward gitclaw 1.0.0.
 
----
+## 0.4.0 — Dependency Management
 
-## 0.4.0 - Dependency Management
+**Semver range support**
 
-### Semver Range Support
-Install versions matching constraints.
+Install versions matching constraints:
 
-**Syntax:**
-- `gitclaw install user/repo ">=1.0.0"`
-- `gitclaw install user/repo "^1.2.3"`
-- `gitclaw install user/repo "~1.2"`
+```bash
+gitclaw install user/repo ">=1.0.0"
+gitclaw install user/repo "^1.2.3"
+```
 
-### Lockfile Support
-Reproducible installs via `gitclaw.lock`.
+**Lockfile support**
 
-**Commands:**
-- `gitclaw lock` — generate lockfile from current installs
-- `gitclaw install --locked` — install from lockfile
+Reproducible installs via `gitclaw.lock`:
 
-**Format:** TOML with exact versions and hashes.
+```bash
+gitclaw lock
+gitclaw install --locked
+```
 
-### Package Aliases
-Short names for frequently used packages.
+**Package aliases**
 
-**Commands:**
-- `gitclaw alias rg BurntSushi/ripgrep`
-- `gitclaw install rg` → installs ripgrep
+Short names for frequently used packages:
 
----
+```bash
+gitclaw alias rg BurntSushi/ripgrep
+gitclaw install rg
+```
 
-## 0.5.0 - User Experience
+## 0.5.0 — User Experience
 
-### TUI Mode
-Interactive terminal UI with `ratatui`.
+**Asset caching**
 
-**Features:**
-- `gitclaw --tui` or default when TTY detected
-- Browse releases visually
-- Preview assets before install
-- Filter/search interactively
+Cache downloaded archives to `~/.gitclaw/cache/` — skip re-download if hash matches.
 
-### Asset Caching
-Cache downloaded archives.
+```bash
+gitclaw cache clean
+gitclaw cache size
+```
 
-**Location:** `~/.gitclaw/cache/`
+**Outdated check**
 
-**Commands:**
-- Skip re-download if hash matches
-- `gitclaw cache clean` — clear cache
-- `gitclaw cache size` — show cache usage
+```bash
+gitclaw list --outdated
+```
 
-### Outdated Check
-Show packages with available updates.
+Compares installed version against latest GitHub release.
 
-**Commands:**
-- `gitclaw list --outdated`
-- Compares installed vs latest GitHub release
+**Local installs**
 
-### Local Installs
-Project-local package installation.
+Project-scoped installation isolated from the global registry:
 
-**Commands:**
-- `gitclaw install --local user/repo`
-- Installs to `./.gitclaw/bin/`
-- Ignores global registry
+```bash
+gitclaw install --local user/repo
+```
 
----
+## 0.6.0 — Advanced Features
 
-## 0.6.0 - Advanced Features
+**Release channels**
 
-### Release Channels
-Install from specific channels.
+```bash
+gitclaw install user/repo --channel nightly
+gitclaw install user/repo --channel beta
+```
 
-**Channels:**
-- `stable` — default
-- `nightly` — latest pre-release
-- `beta` — tagged beta versions
+**Export / import**
 
-**Commands:**
-- `gitclaw install user/repo --channel nightly`
+Share package lists between machines:
 
-### Export/Import
-Share package lists between machines.
+```bash
+gitclaw export > deps.toml
+gitclaw import deps.toml
+```
 
-**Commands:**
-- `gitclaw export > deps.toml`
-- `gitclaw import deps.toml`
+## 0.7.0 — Platform Integration
 
----
+**Windows PATH management**
 
-## 0.7.0 - Platform Integration
+Automatically add installed binaries to the user PATH on Windows.
 
-### Homebrew Integration
-Detect and integrate with Homebrew on macOS.
+**Package manager awareness**
 
-**Features:**
-- Warn if package already in Homebrew
-- Option to prefer Homebrew for certain packages
+Warn when a package is already available via a system package manager (Homebrew, apt, etc.).
 
-### Windows PATH Management
-Automatically add to Windows PATH.
+## 1.0.0 — Stability
 
-**Features:**
-- Modify system or user PATH
-- Registry edits on Windows
-
----
-
-## Future - Extensibility
-
-### Plugin System
-Extend gitclaw with custom plugins.
-
-**Hooks:**
-- `pre-install` — custom validation
-- `post-install` — setup, symlinks
-- `pre-uninstall` — cleanup
-
-**Custom extractors:** Support non-standard archive formats.
-
----
+- All 0.x features stable and documented
+- Stable registry format (no breaking changes without migration)
+- Stable config format
+- Full test coverage across all modules
+- Published to crates.io
 
 ## Rejected Ideas
 
 | Idea | Reason |
 |------|--------|
-| Package signing | Too complex, checksums sufficient |
-| Auto-detect updates | Too noisy, explicit is better |
-| GUI application | Out of scope, TUI is sufficient |
-| Telemetry | Privacy concerns, not worth it |
-| Web Dashboard | Out of scope for CLI tool |
+| Package signing | Checksums are sufficient for the use case |
+| Auto-update on launch | Too noisy; explicit is better |
+| GUI application | Out of scope; TUI is sufficient |
+| Telemetry | Privacy concerns |
+| Web dashboard | Out of scope for a CLI tool |
 
----
-
-*Last updated: 2026-04-21*
-*Contributors: clawdeeo, airscript*
+*Last updated: 2026-04-23*

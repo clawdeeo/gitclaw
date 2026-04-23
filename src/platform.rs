@@ -1,5 +1,3 @@
-//! Platform detection for Linux only
-
 #![allow(dead_code)]
 
 use thiserror::Error;

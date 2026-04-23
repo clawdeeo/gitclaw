@@ -59,12 +59,8 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
 }
 
 async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
-    // Show banner only on help (no subcommand)
-    // Show version line for actual commands
     match &cli.command {
-        Commands::Completions { .. } => {
-            // No banner for completions
-        }
+        Commands::Completions { .. } => {}
         Commands::Install { .. }
         | Commands::List { .. }
         | Commands::Update { .. }
@@ -90,32 +86,56 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
                 install::handle_install_multiple(&packages, force, dry_run, verify, &config).await?
             }
         }
-        Commands::List { verbose } => registry::list_installed(verbose, &config.install_dir)?,
-        Commands::Update { package } => install::handle_update(package.as_deref(), &config).await?,
-        Commands::Uninstall { package } => registry::uninstall(&package, &config.install_dir)?,
+
+        Commands::List { verbose } => {
+            banner::print_output_header();
+            registry::list_installed(verbose, &config.install_dir)?
+        }
+
+        Commands::Update { package } => {
+            banner::print_output_header();
+            install::handle_update(package.as_deref(), &config).await?
+        }
+
+        Commands::Uninstall { package } => {
+            banner::print_output_header();
+            registry::uninstall(&package, &config.install_dir)?
+        }
+
         Commands::Search { package, limit } => {
+            banner::print_output_header();
             github::search_releases(&package, limit, &config).await?
         }
+
         Commands::Completions { shell } => {
+            banner::print_output_header();
             let mut cmd = Cli::command();
             let name = cmd.get_name().to_string();
             generate(shell, &mut cmd, name, &mut std::io::stdout());
         }
+
         Commands::Platform {} => {
             banner::print_output_header();
             let arch = platform::current_platform();
-            println!("Detected platform: linux {}", arch);
-            println!("Compiled for: Linux");
-            println!("Architecture aliases: {:?}", arch.aliases());
+            banner::print_info(&format!("Detected platform: linux {}", arch));
+            banner::print_info(&format!("Compiled for: Linux"));
+            banner::print_info(&format!("Architecture aliases: {:?}", arch.aliases()));
         }
+
         Commands::SelfUpdate { check } => {
+            banner::print_output_header();
+
             if check {
                 self_update::check_for_update(&config).await?
             } else {
                 self_update::perform_update(&config).await?
             }
         }
-        Commands::Run { package, args } => run_package(&package, args, &config).await?,
+
+        Commands::Run { package, args } => {
+            banner::print_output_header();
+            run_package(&package, args, &config).await?
+        }
     }
 
     Ok(())
@@ -129,11 +149,9 @@ async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyho
         }
         (parts[0].to_string(), parts[1].to_string())
     } else {
-        // If no owner specified, search in registry
         let registry_path = registry_path_from(&config.install_dir);
         let reg = Registry::load_from(&registry_path)?;
 
-        // Find package by repo name
         let matches: Vec<_> = reg
             .packages
             .values()
@@ -165,7 +183,6 @@ async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyho
         );
     }
 
-    // Execute the binary with provided args
     use std::process::Command;
     let status = Command::new(&binary_path).args(args).status()?;
 

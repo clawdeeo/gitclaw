@@ -4,7 +4,6 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 
-/// Supported checksum algorithms
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChecksumAlgorithm {
     Sha256,
@@ -12,7 +11,6 @@ pub enum ChecksumAlgorithm {
     Md5,
 }
 
-/// Checksum file information
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct ChecksumFile {
@@ -21,7 +19,6 @@ pub struct ChecksumFile {
     pub expected_hash: String,
 }
 
-/// Detect if a filename is a checksum file
 pub fn is_checksum_file(filename: &str) -> Option<ChecksumAlgorithm> {
     let lower = filename.to_lowercase();
     if lower.ends_with(".sha256") || lower.contains(".sha256.") {
@@ -35,12 +32,10 @@ pub fn is_checksum_file(filename: &str) -> Option<ChecksumAlgorithm> {
     }
 }
 
-/// Find checksum file for a given asset in release assets
 pub fn find_checksum_file(
     asset_name: &str,
     assets: &[crate::github::Asset],
 ) -> Option<(ChecksumAlgorithm, String)> {
-    // Try exact match patterns first
     let patterns = vec![
         format!("{}.sha256", asset_name),
         format!("{}.sha512", asset_name),
@@ -56,7 +51,6 @@ pub fn find_checksum_file(
         }
     }
 
-    // Try generic checksum files (checksums.txt, SHA256SUMS, etc.)
     for asset in assets {
         let name_lower = asset.name.to_lowercase();
         if name_lower.contains("checksum") || name_lower.contains("sha256sum") {
@@ -70,7 +64,6 @@ pub fn find_checksum_file(
     None
 }
 
-/// Verify file against expected checksum
 pub fn verify_file(file_path: &Path, expected: &str, algo: ChecksumAlgorithm) -> Result<()> {
     let calculated = calculate_checksum(file_path, algo)?;
     let expected_clean = expected.trim().to_lowercase();
@@ -87,7 +80,6 @@ pub fn verify_file(file_path: &Path, expected: &str, algo: ChecksumAlgorithm) ->
     Ok(())
 }
 
-/// Calculate checksum of a file
 pub fn calculate_checksum(file_path: &Path, algo: ChecksumAlgorithm) -> Result<String> {
     let mut file = fs::File::open(file_path).context("Failed to open file for checksum")?;
     let mut buffer = Vec::new();
@@ -114,7 +106,6 @@ pub fn calculate_checksum(file_path: &Path, algo: ChecksumAlgorithm) -> Result<S
     Ok(hash)
 }
 
-/// Parse checksum from checksum file content
 pub fn parse_checksum_file(content: &str, target_filename: &str) -> Option<String> {
     for line in content.lines() {
         let line = line.trim();
@@ -122,11 +113,10 @@ pub fn parse_checksum_file(content: &str, target_filename: &str) -> Option<Strin
             continue;
         }
 
-        // Handle "HASH  filename" format (sha256sum style)
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 2 {
             let hash = parts[0];
-            let filename = parts[1].trim_start_matches('*'); // Remove binary marker
+            let filename = parts[1].trim_start_matches('*');
             if filename == target_filename {
                 return Some(hash.to_string());
             }
