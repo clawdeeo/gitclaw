@@ -1,7 +1,12 @@
+mod app;
 pub mod cli;
 pub mod core;
 pub mod network;
 pub mod output;
+
+pub async fn start() {
+    app::start().await;
+}
 
 pub use cli::{AliasAction, CacheAction, Cli, Commands};
 pub use core::alias;

@@ -21,22 +21,22 @@ gcw list
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| alias | Manage package aliases. |
-| cache | Manage the asset cache. |
-| completions | Generate shell completions. |
-| export | Export installed packages to TOML. |
-| import | Install packages from a TOML file. |
-| install | Install packages from GitHub releases. |
-| list | List installed packages. |
-| lock | Generate a lockfile from installed packages. |
-| platform | Show platform information. |
-| run | Run an installed package. |
-| search | Search for releases on GitHub. |
-| self | Update gitclaw to the latest version. |
-| uninstall | Uninstall a package. |
-| update | Update installed packages. |
+| Command     | Description                                  |
+| ----------- | -------------------------------------------- |
+| alias       | Manage package aliases.                      |
+| cache       | Manage the asset cache.                      |
+| completions | Generate shell completions.                  |
+| export      | Export installed packages to TOML.           |
+| import      | Install packages from a TOML file.           |
+| install     | Install packages from GitHub releases.       |
+| list        | List installed packages.                     |
+| lock        | Generate a lockfile from installed packages. |
+| platform    | Show platform information.                   |
+| run         | Run an installed package.                    |
+| search      | Search for releases on GitHub.               |
+| self        | Update gitclaw to the latest version.        |
+| uninstall   | Uninstall a package.                         |
+| update      | Update installed packages.                   |
 
 ## Configuration
 
@@ -70,9 +70,9 @@ verbose = false
 
 ## Supported Platforms
 
-| OS | x86_64 | aarch64 |
-|----|--------|---------|
-| Linux | yes | yes |
+| OS    | x86_64 | aarch64 |
+| ----- | ------ | ------- |
+| Linux | yes    | yes     |
 
 ## Development
 

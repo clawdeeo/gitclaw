@@ -7,14 +7,6 @@ edition = "2021"
 name = "gitclaw"
 path = "src/lib.rs"
 
-[[bin]]
-name = "gitclaw"
-path = "src/main.rs"
-
-[[bin]]
-name = "gcw"
-path = "src/main.rs"
-
 [dependencies]
 clap = { version = "=4.4.18", features = ["derive", "env"] }
 clap_complete = "=4.4.5"

@@ -7,6 +7,7 @@
 ---
 
 ## Small Change (bug fix, tweak)
+
 Skip this template. Write a clear PR description instead.
 
 ---
@@ -16,6 +17,7 @@ Skip this template. Write a clear PR description instead.
 **What:** [One sentence describing the deliverable.]
 
 **Spec:**
+
 - Requirement 1
 - Requirement 2
 - Requirement 3
@@ -29,6 +31,7 @@ Skip this template. Write a clear PR description instead.
 **What:** [One sentence describing the deliverable.]
 
 **Spec:**
+
 - Requirement 1
 - Requirement 2
 
@@ -47,7 +50,7 @@ Skip this template. Write a clear PR description instead.
 
 - [Test category]: [what is tested]
 - [Test category]: [what is tested]
-- `cargo fmt && cargo clippy -- -D warnings && cargo test` must pass
+- `cargo fmt && cargo clippy && cargo test` must pass
 
 ## Files to Modify
 

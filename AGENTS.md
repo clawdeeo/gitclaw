@@ -12,21 +12,21 @@ Development guide for gitclaw contributors and agents.
 
 ## Source Modules
 
-| File | Responsibility |
-|------|----------------|
-| `main.rs` | Entry point, CLI dispatch, `run_package()` |
-| `lib.rs` | Module re-exports |
-| `cli/mod.rs` | Clap CLI definition |
-| `output/mod.rs` | `print_success` (`[EXEC]`), `print_info` (cyan), `print_warn` (yellow), `print_error` (red), `print_kv`, `print_header` |
-| `core/config.rs` | `Config`, `DownloadConfig`, `OutputConfig`, config loading/merging |
-| `core/checksum.rs` | `ChecksumAlgorithm`, `verify_file`, `calculate_checksum`, `parse_checksum_file` |
-| `core/extract.rs` | `ArchiveType`, `extract_archive`, `detect_archive_type` |
-| `core/install.rs` | `handle_install`, `handle_update`, `handle_install_multiple` |
-| `core/registry.rs` | `InstalledPackage`, `Registry`, `list_installed`, `uninstall` |
-| `core/updater.rs` | `check_for_update`, `perform_update` |
-| `core/util.rs` | Path helpers, `format_bytes` |
-| `network/github.rs` | `GithubClient`, `Release`, `Asset`, `Platform`, `GithubError`, `parse_package`, `find_matching_asset` |
-| `network/platform.rs` | `Arch`, `PlatformError`, `detect_arch`, `current_platform`, `score_asset`, `find_best_asset` |
+| File                  | Responsibility                                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `main.rs`             | Entry point, CLI dispatch, `run_package()`                                                                              |
+| `lib.rs`              | Module re-exports                                                                                                       |
+| `cli/mod.rs`          | Clap CLI definition                                                                                                     |
+| `output/mod.rs`       | `print_success` (`[EXEC]`), `print_info` (cyan), `print_warn` (yellow), `print_error` (red), `print_kv`, `print_header` |
+| `core/config.rs`      | `Config`, `DownloadConfig`, `OutputConfig`, config loading/merging                                                      |
+| `core/checksum.rs`    | `ChecksumAlgorithm`, `verify_file`, `calculate_checksum`, `parse_checksum_file`                                         |
+| `core/extract.rs`     | `ArchiveType`, `extract_archive`, `detect_archive_type`                                                                 |
+| `core/install.rs`     | `handle_install`, `handle_update`, `handle_install_multiple`                                                            |
+| `core/registry.rs`    | `InstalledPackage`, `Registry`, `list_installed`, `uninstall`                                                           |
+| `core/updater.rs`     | `check_for_update`, `perform_update`                                                                                    |
+| `core/util.rs`        | Path helpers, `format_bytes`                                                                                            |
+| `network/github.rs`   | `GithubClient`, `Release`, `Asset`, `Platform`, `GithubError`, `parse_package`, `find_matching_asset`                   |
+| `network/platform.rs` | `Arch`, `PlatformError`, `detect_arch`, `current_platform`, `score_asset`, `find_best_asset`                            |
 
 ## Output Conventions
 
@@ -79,4 +79,4 @@ Verify, Test, Build
 
 After rework or significant issues, document: what went wrong, root cause, prevention. Add to this file so it persists.
 
-*Last updated: 2026-04-24*
+_Last updated: 2026-04-24_

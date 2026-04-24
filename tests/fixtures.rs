@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub const OWNER: &str = "BurntSushi";
 pub const REPO: &str = "ripgrep";
 pub const VERSION: &str = "13.0.0";
