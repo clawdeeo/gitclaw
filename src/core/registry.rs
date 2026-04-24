@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::core::config::Config;
-use crate::core::constants::APP_NAME_SHORT;
+use crate::core::constants::{APP_NAME_SHORT, RELEASE_TAG_LATEST};
 use crate::core::util::registry_path_from;
 use crate::network::github::{parse_package, GithubClient};
 use crate::output;
@@ -160,7 +160,10 @@ pub async fn list_outdated(install_dir: &Path, token: Option<&str>) -> Result<()
     let mut outdated = Vec::new();
 
     for pkg in reg.packages.values() {
-        let latest = match client.get_release(&pkg.owner, &pkg.repo, "latest").await {
+        let latest = match client
+            .get_release(&pkg.owner, &pkg.repo, RELEASE_TAG_LATEST)
+            .await
+        {
             Ok(r) => r.tag_name,
             Err(_) => continue,
         };

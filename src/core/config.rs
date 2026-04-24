@@ -3,6 +3,10 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
+
+use crate::core::constants::{
+    CONFIG_FILE, ENV_VAR_CONFIG, GITCLAW_DIR, LOCAL_CONFIG_FILE, XDG_CONFIG_SUBDIR,
+};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -78,7 +82,7 @@ fn default_color() -> String {
 fn default_install_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".gitclaw")
+        .join(GITCLAW_DIR)
 }
 
 impl Config {
@@ -102,7 +106,7 @@ impl Config {
     }
 
     pub fn load_from_env() -> Result<Option<Self>> {
-        if let Ok(path) = env::var("GITCLAW_CONFIG") {
+        if let Ok(path) = env::var(ENV_VAR_CONFIG) {
             let content = fs::read_to_string(&path)
                 .with_context(|| format!("Failed to read config from GITCLAW_CONFIG: {}", path))?;
             let config: Config = toml::from_str(&content)
@@ -113,7 +117,7 @@ impl Config {
     }
 
     pub fn load_from_local() -> Result<Option<Self>> {
-        let path = PathBuf::from(".gitclaw.toml");
+        let path = PathBuf::from(LOCAL_CONFIG_FILE);
         if path.exists() {
             let content =
                 fs::read_to_string(&path).with_context(|| "Failed to read project-local config")?;
@@ -126,7 +130,7 @@ impl Config {
 
     pub fn load_from_xdg() -> Result<Option<Self>> {
         if let Some(config_dir) = dirs::config_dir() {
-            let path = config_dir.join("gitclaw").join("config.toml");
+            let path = config_dir.join(XDG_CONFIG_SUBDIR).join(CONFIG_FILE);
             if path.exists() {
                 let content =
                     fs::read_to_string(&path).with_context(|| "Failed to read XDG config")?;

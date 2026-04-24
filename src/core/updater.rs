@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 use crate::core::config::Config;
 use crate::core::constants::{
-    APP_NAME, DIR_EXTRACTED, REPO_NAME, REPO_OWNER, TEMP_DIR_SELF_UPDATE,
+    APP_NAME, DIR_EXTRACTED, RELEASE_TAG_LATEST, REPO_NAME, REPO_OWNER, TEMP_DIR_SELF_UPDATE,
 };
 use crate::core::extract::extract_archive;
 use crate::network::github::{find_matching_asset, GithubClient, Platform};
@@ -24,7 +24,9 @@ fn current_version() -> String {
 
 pub async fn check_for_update(config: &Config) -> Result<()> {
     let client = GithubClient::new(config.github_token.clone())?;
-    let release = client.get_release(REPO_OWNER, REPO_NAME, "latest").await?;
+    let release = client
+        .get_release(REPO_OWNER, REPO_NAME, RELEASE_TAG_LATEST)
+        .await?;
 
     let current = current_version();
     let latest = release.tag_name.trim_start_matches('v').to_string();
@@ -50,7 +52,9 @@ pub async fn check_for_update(config: &Config) -> Result<()> {
 
 pub async fn perform_update(config: &Config) -> Result<()> {
     let client = GithubClient::new(config.github_token.clone())?;
-    let release = client.get_release(REPO_OWNER, REPO_NAME, "latest").await?;
+    let release = client
+        .get_release(REPO_OWNER, REPO_NAME, RELEASE_TAG_LATEST)
+        .await?;
 
     let current = current_version();
     let latest = release.tag_name.trim_start_matches('v').to_string();

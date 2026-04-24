@@ -7,7 +7,7 @@ use clap_complete::generate;
 use gitclaw::banner;
 use gitclaw::cli::{AliasAction, CacheAction, Cli, Commands};
 use gitclaw::config::Config;
-use gitclaw::constants::{APP_NAME, APP_NAME_SHORT, DIR_BIN};
+use gitclaw::constants::{APP_NAME, APP_NAME_SHORT, DIR_BIN, GITCLAW_DIR};
 use gitclaw::registry::Registry;
 use gitclaw::util::registry_path_from;
 
@@ -108,7 +108,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
 
             let install_config = if local {
                 let mut cfg = config.clone();
-                cfg.install_dir = std::env::current_dir()?.join(".gitclaw");
+                cfg.install_dir = std::env::current_dir()?.join(GITCLAW_DIR);
                 cfg
             } else {
                 config.clone()
@@ -173,7 +173,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             banner::print_output_header();
 
             let install_dir = if local {
-                std::env::current_dir()?.join(".gitclaw")
+                std::env::current_dir()?.join(GITCLAW_DIR)
             } else {
                 config.install_dir.clone()
             };

@@ -11,7 +11,7 @@ use thiserror::Error;
 use tracing::{debug, warn};
 
 use crate::core::config::Config;
-use crate::core::constants::GITHUB_API_BASE;
+use crate::core::constants::{GITHUB_API_BASE, RELEASE_TAG_LATEST};
 use crate::output;
 
 const GITHUB_API: &str = GITHUB_API_BASE;
@@ -132,7 +132,7 @@ impl GithubClient {
         repo: &str,
         version: &str,
     ) -> std::result::Result<Release, GithubError> {
-        if version == "latest" {
+        if version == RELEASE_TAG_LATEST {
             self.get_latest_release(user, repo).await
         } else {
             self.get_release_by_tag(user, repo, version).await
@@ -221,7 +221,7 @@ impl GithubClient {
             .ok_or_else(|| GithubError::ReleaseNotFound {
                 owner: owner.to_string(),
                 repo: repo.to_string(),
-                version: "latest".to_string(),
+                version: RELEASE_TAG_LATEST.to_string(),
             })
     }
 
