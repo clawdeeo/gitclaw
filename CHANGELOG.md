@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-04-24
+
+First stable release.
+
+### Added
+- Release channels: `install --channel nightly|beta|stable`
+- `search --channel <name>` filters releases by channel
+- Channel pattern overrides in `.gitclaw.toml` under `[channels]`
+- `export` outputs installed packages as TOML to stdout
+- `export -o deps.toml` writes to file
+- `import deps.toml` installs all packages from a TOML file
+- Import skips already-installed packages unless `--force` is set
+- Asset caching: downloaded archives cached to `~/.gitclaw/cache/`, reused on subsequent installs
+- `cache clean` and `cache size` commands
+- `list --outdated` compares installed versions against latest GitHub releases
+- Local installs: `install --local user/repo` installs to `./.gitclaw/`
+- `uninstall --local` for local project directory
+- Platform-aware asset selection with scoring system
+- `run` command to execute installed binaries directly
+- `gcw` short alias binary
+- Constants module for all string literals and magic values
+- Taglines and output section headers for better CLI UX
+
+### Changed
+- Repository moved to `airscripts/gitclaw`
+- Restructured as a library with `src/lib.rs` and separate `src/bin/` entrypoints
+- Replaced all `"latest"` string literals with `RELEASE_TAG_LATEST` constant
+- Improved variable naming in channel matching (wildcard flags)
+- Codebase cleanup: removed dead code and unnecessary comments
+- UI and output polishing across all commands
+- CI action versions upgraded
+
+### Fixed
+- Platform asset matching with proper scoring for Linux-only releases
+- Symlinks in `bin/` now use absolute paths
+- Install channel persisted in registry for consistent updates
+
 ## [0.7.0] - 2026-04-23
 
 ### Added

@@ -1,6 +1,6 @@
 # gitclaw
 
-[![CI](https://github.com/clawdeeo/gitclaw/actions/workflows/main.yml/badge.svg)](https://github.com/clawdeeo/gitclaw/actions/workflows/main.yml)
+[![CI](https://github.com/airscripts/gitclaw/actions/workflows/main.yml/badge.svg)](https://github.com/airscripts/gitclaw/actions/workflows/main.yml)
 
 Install software from GitHub releases.  
 Also available as `gcw`.
