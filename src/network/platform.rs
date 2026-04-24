@@ -1,5 +1,10 @@
 use thiserror::Error;
 
+use crate::core::constants::{
+    SCORE_CHECKSUM_PENALTY, SCORE_KNOWN_EXTENSION, SCORE_LINUX_PARTIAL, SCORE_PLATFORM_MATCH,
+    SCORE_SHELL_SCRIPT,
+};
+
 #[derive(Error, Debug)]
 pub enum PlatformError {
     #[error("Unsupported architecture: {0}")]
@@ -24,8 +29,24 @@ impl std::fmt::Display for Arch {
 impl Arch {
     pub fn aliases(&self) -> &[&'static str] {
         match self {
-            Arch::X86_64 => &["x86_64", "amd64", "x64"],
-            Arch::Aarch64 => &["aarch64", "arm64"],
+            Arch::X86_64 => &[
+                "linux-x86_64",
+                "linux-amd64",
+                "linux-x64",
+                "x86_64-unknown-linux-gnu",
+                "x86_64-unknown-linux-musl",
+                "x86_64",
+                "amd64",
+                "x64",
+            ],
+            Arch::Aarch64 => &[
+                "linux-aarch64",
+                "linux-arm64",
+                "aarch64-unknown-linux-gnu",
+                "aarch64-unknown-linux-musl",
+                "aarch64",
+                "arm64",
+            ],
         }
     }
 }
@@ -38,36 +59,46 @@ pub fn detect_arch() -> Result<Arch, PlatformError> {
     }
 }
 
-pub fn current_platform() -> Arch {
-    detect_arch().expect("Linux x86_64 or aarch64 required")
+pub fn current_platform() -> Result<Arch, PlatformError> {
+    detect_arch()
 }
 
 pub fn score_asset(name: &str, arch: Arch) -> i32 {
     let lower = name.to_lowercase();
     let mut score = 0;
 
-    if lower.contains("linux") {
-        score += 10;
-    }
-
     for alias in arch.aliases() {
         if lower.contains(alias) {
-            score += 10;
+            score += SCORE_PLATFORM_MATCH;
             break;
         }
     }
 
-    if lower.ends_with(".tar.gz") || lower.ends_with(".tar.xz") || lower.ends_with(".tgz") {
-        score += 5;
+    if score == 0 && lower.contains("linux") {
+        score += SCORE_LINUX_PARTIAL;
     }
 
-    if lower.contains("checksum")
-        || lower.contains("sha256")
-        || lower.contains(".asc")
-        || lower.contains(".sig")
-        || lower.contains(".sha")
-    {
-        score -= 50;
+    if score >= SCORE_LINUX_PARTIAL {
+        if lower.ends_with(".tar.gz")
+            || lower.ends_with(".tgz")
+            || lower.ends_with(".tar.xz")
+            || lower.ends_with(".tar.bz2")
+            || lower.ends_with(".zip")
+            || lower.ends_with(".appimage")
+            || lower.ends_with(".deb")
+            || lower.ends_with(".rpm")
+            || lower.ends_with(".tar")
+        {
+            score += SCORE_KNOWN_EXTENSION;
+        }
+
+        if lower.ends_with(".sh") {
+            score += SCORE_SHELL_SCRIPT;
+        }
+    }
+
+    if crate::core::checksum::is_checksum_asset(&lower) {
+        score += SCORE_CHECKSUM_PENALTY;
     }
 
     score

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use gitclaw::core::channel::Channel;
 use gitclaw::registry::{InstalledPackage, Registry};
 use tempfile::TempDir;
 
@@ -8,7 +9,7 @@ fn make_pkg_with_channel(
     owner: &str,
     repo: &str,
     version: &str,
-    channel: Option<&str>,
+    channel: Option<Channel>,
 ) -> InstalledPackage {
     InstalledPackage {
         name: name.to_string(),
@@ -20,7 +21,7 @@ fn make_pkg_with_channel(
         install_dir: PathBuf::from("/tmp/test"),
         asset_name: format!("{}.tar.gz", repo),
         identifier: repo.to_string(),
-        channel: channel.map(|s| s.to_string()),
+        channel,
     }
 }
 
@@ -31,9 +32,10 @@ fn test_installed_package_with_channel() {
         "user",
         "repo",
         "1.0.0-nightly",
-        Some("nightly"),
+        Some(Channel::Nightly),
     );
-    assert_eq!(pkg.channel, Some("nightly".to_string()));
+
+    assert_eq!(pkg.channel, Some(Channel::Nightly));
 }
 
 #[test]
@@ -47,15 +49,16 @@ fn test_registry_save_load_with_channel() {
     let dir = TempDir::new().unwrap();
     let reg_path = dir.path().join("registry.toml");
     std::fs::create_dir_all(dir.path()).unwrap();
-
     let mut reg = Registry::load_from(&reg_path).unwrap();
+
     reg.add(make_pkg_with_channel(
         "BurntSushi/ripgrep",
         "BurntSushi",
         "ripgrep",
         "14.0.0-nightly",
-        Some("nightly"),
+        Some(Channel::Nightly),
     ));
+
     reg.add(make_pkg_with_channel(
         "sharkdp/fd",
         "sharkdp",
@@ -63,11 +66,12 @@ fn test_registry_save_load_with_channel() {
         "8.7.0",
         None,
     ));
+
     reg.save().unwrap();
 
     let loaded = Registry::load_from(&reg_path).unwrap();
     let rg = loaded.packages.get("BurntSushi/ripgrep").unwrap();
-    assert_eq!(rg.channel, Some("nightly".to_string()));
+    assert_eq!(rg.channel, Some(Channel::Nightly));
 
     let fd = loaded.packages.get("sharkdp/fd").unwrap();
     assert_eq!(fd.channel, None);

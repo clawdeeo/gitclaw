@@ -1,24 +1,19 @@
-use std::fs;
-use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
-
-use anyhow::{bail, Result};
-use colored::Colorize;
-use futures::future::join_all;
-use walkdir::WalkDir;
-
 use crate::core::checksum::{find_checksum_file, verify_file};
 use crate::core::config::Config;
-use crate::core::constants::{APP_NAME, RELEASE_TAG_LATEST, TEMP_DIR_PREFIX};
+use crate::core::constants::{APP_NAME, DIR_PACKAGES, RELEASE_TAG_LATEST, TEMP_DIR_PREFIX};
 use crate::core::extract::extract_archive;
 use crate::core::registry::{InstalledPackage, Registry};
 use crate::core::semver::{parse_tag_version, VersionConstraint};
-use crate::core::util::{bin_dir_from, registry_path_from};
+use crate::core::util::{bin_dir_from, find_binary, package_key, registry_path_from};
 use crate::network::github::{
     find_matching_asset, parse_package, Asset, GithubClient, Platform, Release,
 };
 use crate::output;
+use anyhow::{bail, Result};
+use colored::Colorize;
+use futures::future::join_all;
 use semver::Version;
+use std::fs;
 
 pub async fn handle_install(
     package: &str,
@@ -28,19 +23,10 @@ pub async fn handle_install(
     config: &Config,
     channel: Option<crate::core::channel::Channel>,
 ) -> Result<()> {
-    let resolved = if !package.contains('/') {
-        if let Some(alias_target) = crate::core::alias::AliasMap::load(config)?.resolve(package) {
-            output::print_info(&format!("Alias '{}' -> '{}'.", package, alias_target));
-            alias_target.to_string()
-        } else {
-            package.to_string()
-        }
-    } else {
-        package.to_string()
-    };
+    let resolved = crate::core::alias::resolve_package_input(package, config)?;
 
     let (owner, repo, version) = parse_package(&resolved)?;
-    let key = format!("{}/{}", owner, repo);
+    let key = package_key(&owner, &repo);
 
     let aliases = crate::core::alias::AliasMap::load(config)?;
     if let Some(alias_target) = aliases.resolve(&repo) {
@@ -60,7 +46,10 @@ pub async fn handle_install(
     let mut reg = Registry::load_from(&registry_path)?;
 
     if !force && reg.is_installed(&key) {
-        let pkg = reg.packages.get(&key).unwrap();
+        let pkg = reg
+            .packages
+            .get(&key)
+            .ok_or_else(|| anyhow::anyhow!("Invariant: installed package missing from registry"))?;
         output::print_warn(&format!(
             "{} already installed ({}). Use --force to reinstall.",
             key, pkg.version
@@ -71,14 +60,7 @@ pub async fn handle_install(
     let client = GithubClient::new(config.github_token.clone())?;
 
     let release = match (&version, channel) {
-        (_, Some(ch)) => {
-            let releases = client.get_releases(&owner, &repo).await?;
-            let filtered = crate::core::channel::filter_releases(&releases, ch, None);
-            if filtered.is_empty() {
-                bail!("No {} release found for {}/{}.", ch, owner, repo);
-            }
-            filtered.into_iter().next().unwrap()
-        }
+        (_, Some(ch)) => fetch_latest_for_channel(&client, &owner, &repo, ch).await?,
         (Some(v), None) => {
             if is_semver_constraint(v) {
                 let constraint = VersionConstraint::parse(v)?;
@@ -96,7 +78,7 @@ pub async fn handle_install(
 
     let asset = select_best_asset(&release)?;
 
-    let pkg_install_dir = config.install_dir.join("packages").join(&key);
+    let pkg_install_dir = config.install_dir.join(DIR_PACKAGES).join(&key);
     let bin_dir = bin_dir_from(&config.install_dir);
 
     if dry_run {
@@ -163,7 +145,7 @@ pub async fn handle_install(
         }
     }
 
-    let pkg_install_dir = config.install_dir.join("packages").join(&key);
+    let pkg_install_dir = config.install_dir.join(DIR_PACKAGES).join(&key);
     fs::create_dir_all(&pkg_install_dir)?;
 
     if !config.output.quiet {
@@ -189,7 +171,7 @@ pub async fn handle_install(
         install_dir: pkg_install_dir.clone(),
         asset_name: asset.name.clone(),
         identifier: repo.clone(),
-        channel: channel.map(|c| c.to_string()),
+        channel,
     };
 
     reg.add(pkg);
@@ -215,7 +197,7 @@ pub async fn handle_update(package: Option<&str>, config: &Config) -> Result<()>
 
 async fn update_one(package: &str, config: &Config) -> Result<()> {
     let (owner, repo, _) = parse_package(package)?;
-    let key = format!("{}/{}", owner, repo);
+    let key = package_key(&owner, &repo);
     let registry_path = registry_path_from(&config.install_dir);
     let reg = Registry::load_from(&registry_path)?;
 
@@ -223,7 +205,10 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
         bail!("{} not installed. Use '{} install' first.", key, APP_NAME);
     }
 
-    let installed = reg.packages.get(&key).unwrap();
+    let installed = reg
+        .packages
+        .get(&key)
+        .ok_or_else(|| anyhow::anyhow!("Invariant: installed package missing from registry"))?;
 
     if !config.output.quiet {
         output::print_info(&format!(
@@ -235,20 +220,10 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
 
     let client = GithubClient::new(config.github_token.clone())?;
 
-    let ch = match installed.channel.as_deref() {
-        Some(c) => Some(c.parse::<crate::core::channel::Channel>()?),
-        None => None,
-    };
+    let ch = installed.channel;
 
     let latest = match ch {
-        Some(channel) => {
-            let releases = client.get_releases(&owner, &repo).await?;
-            let filtered = crate::core::channel::filter_releases(&releases, channel, None);
-            if filtered.is_empty() {
-                bail!("No {} release found for {}/{}.", channel, owner, repo);
-            }
-            filtered.into_iter().next().unwrap()
-        }
+        Some(channel) => fetch_latest_for_channel(&client, &owner, &repo, channel).await?,
         None => {
             client
                 .get_release(&owner, &repo, RELEASE_TAG_LATEST)
@@ -311,6 +286,22 @@ async fn update_all(config: &Config) -> Result<()> {
     Ok(())
 }
 
+async fn fetch_latest_for_channel(
+    client: &GithubClient,
+    owner: &str,
+    repo: &str,
+    channel: crate::core::channel::Channel,
+) -> Result<Release> {
+    let releases = client.get_releases(owner, repo).await?;
+    let filtered = crate::core::channel::filter_releases(&releases, channel, None);
+    if filtered.is_empty() {
+        bail!("No {} release found for {}/{}.", channel, owner, repo);
+    }
+    Ok(filtered.into_iter().next().ok_or_else(|| {
+        anyhow::anyhow!("Invariant: filtered list was non-empty but next() returned None")
+    })?)
+}
+
 fn select_best_asset(release: &Release) -> Result<&Asset> {
     if release.assets.is_empty() {
         bail!("Release {} has no assets", release.tag_name);
@@ -328,49 +319,7 @@ fn select_best_asset(release: &Release) -> Result<&Asset> {
     }
 }
 
-fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
-    for entry in WalkDir::new(dir).max_depth(3) {
-        let entry = entry?;
-        if !entry.file_type().is_file() {
-            continue;
-        }
-
-        let stem = entry
-            .path()
-            .file_stem()
-            .unwrap_or_default()
-            .to_string_lossy();
-
-        if stem != repo_name {
-            continue;
-        }
-
-        if fs::metadata(entry.path())
-            .map(|m| m.permissions().mode() & 0o111 != 0)
-            .unwrap_or(false)
-        {
-            return Ok(entry.path().to_path_buf());
-        }
-    }
-
-    for entry in WalkDir::new(dir).max_depth(3) {
-        let entry = entry?;
-        if !entry.file_type().is_file() {
-            continue;
-        }
-
-        if fs::metadata(entry.path())
-            .map(|m| m.permissions().mode() & 0o111 != 0)
-            .unwrap_or(false)
-        {
-            return Ok(entry.path().to_path_buf());
-        }
-    }
-
-    bail!("No binary found in {}", dir.display())
-}
-
-fn create_symlink(binary: &Path, name: &str, bin_dir: &Path) -> Result<()> {
+fn create_symlink(binary: &std::path::Path, name: &str, bin_dir: &std::path::Path) -> Result<()> {
     fs::create_dir_all(bin_dir)?;
     let link = bin_dir.join(name);
 
@@ -480,15 +429,16 @@ async fn find_matching_release(
         );
     }
 
+    let fallback = Version::new(0, 0, 0);
     matching.sort_by(|a, b| {
-        let va =
-            parse_tag_version(&a.tag_name).unwrap_or_else(|_| Version::parse("0.0.0").unwrap());
-        let vb =
-            parse_tag_version(&b.tag_name).unwrap_or_else(|_| Version::parse("0.0.0").unwrap());
+        let va = parse_tag_version(&a.tag_name).unwrap_or_else(|_| fallback.clone());
+        let vb = parse_tag_version(&b.tag_name).unwrap_or_else(|_| fallback.clone());
         vb.cmp(&va)
     });
 
-    Ok(matching.into_iter().next().unwrap())
+    Ok(matching.into_iter().next().ok_or_else(|| {
+        anyhow::anyhow!("Invariant: matching list was non-empty but next() returned None")
+    })?)
 }
 
 fn constraint_display(constraint: &VersionConstraint) -> String {

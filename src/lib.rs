@@ -15,6 +15,7 @@ pub use core::extract;
 pub use core::install;
 pub use core::lockfile;
 pub use core::registry;
+pub use core::run;
 pub use core::semver;
 pub use core::updater;
 pub use core::util;

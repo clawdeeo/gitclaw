@@ -11,10 +11,10 @@ use thiserror::Error;
 use tracing::{debug, warn};
 
 use crate::core::config::Config;
-use crate::core::constants::{GITHUB_API_BASE, RELEASE_TAG_LATEST};
+use crate::core::constants::{GITHUB_API_BASE, RELEASE_TAG_LATEST, SEARCH_LIMIT_MAX};
+use crate::core::util::format_bytes;
+use crate::network::platform::{detect_arch, Arch};
 use crate::output;
-
-const GITHUB_API: &str = GITHUB_API_BASE;
 
 #[derive(Error, Debug)]
 pub enum GithubError {
@@ -76,29 +76,10 @@ impl std::fmt::Display for Platform {
 }
 
 impl Platform {
-    fn aliases(&self) -> &[&'static str] {
-        match self {
-            Platform::LinuxX86_64 => &[
-                "linux-x86_64",
-                "linux-amd64",
-                "linux-x64",
-                "x86_64-unknown-linux-gnu",
-                "x86_64-unknown-linux-musl",
-            ],
-            Platform::LinuxAarch64 => &[
-                "linux-aarch64",
-                "linux-arm64",
-                "aarch64-unknown-linux-gnu",
-                "aarch64-unknown-linux-musl",
-            ],
-        }
-    }
-
     pub fn current() -> Result<Self> {
-        match std::env::consts::ARCH {
-            "x86_64" => Ok(Platform::LinuxX86_64),
-            "aarch64" | "arm64" => Ok(Platform::LinuxAarch64),
-            arch => bail!("Unsupported architecture: {}.", arch),
+        match detect_arch().map_err(|e| anyhow::anyhow!("{}", e))? {
+            Arch::X86_64 => Ok(Platform::LinuxX86_64),
+            Arch::Aarch64 => Ok(Platform::LinuxAarch64),
         }
     }
 }
@@ -153,7 +134,7 @@ impl GithubClient {
 
         let url = format!(
             "{}/repos/{}/{}/releases/tags/{}",
-            GITHUB_API, owner, repo, tag_normalized
+            GITHUB_API_BASE, owner, repo, tag_normalized
         );
         debug!("GET {}", url);
 
@@ -166,7 +147,7 @@ impl GithubClient {
         if tag_normalized.starts_with('v') && tag_normalized != tag {
             let url = format!(
                 "{}/repos/{}/{}/releases/tags/{}",
-                GITHUB_API, owner, repo, tag
+                GITHUB_API_BASE, owner, repo, tag
             );
             let resp = self.add_auth(self.client.get(&url)).send().await?;
 
@@ -205,7 +186,10 @@ impl GithubClient {
         owner: &str,
         repo: &str,
     ) -> std::result::Result<Release, GithubError> {
-        let url = format!("{}/repos/{}/{}/releases/latest", GITHUB_API, owner, repo);
+        let url = format!(
+            "{}/repos/{}/{}/releases/latest",
+            GITHUB_API_BASE, owner, repo
+        );
         let resp = self.add_auth(self.client.get(&url)).send().await?;
 
         if resp.status().is_success() {
@@ -230,17 +214,11 @@ impl GithubClient {
         owner: &str,
         repo: &str,
     ) -> std::result::Result<Vec<Release>, GithubError> {
-        let url = format!("{}/repos/{}/{}/releases", GITHUB_API, owner, repo);
+        let url = format!("{}/repos/{}/{}/releases", GITHUB_API_BASE, owner, repo);
         debug!("GET {}", url);
 
         let resp = self.add_auth(self.client.get(&url)).send().await?;
-
-        if !resp.status().is_success() {
-            let status = resp.status().as_u16();
-            let message = resp.text().await.unwrap_or_default();
-            return Err(GithubError::ApiError { status, message });
-        }
-
+        let resp = check_api_response(resp).await?;
         Ok(resp.json().await?)
     }
 
@@ -316,6 +294,20 @@ impl GithubClient {
     }
 }
 
+async fn check_api_response(
+    resp: reqwest::Response,
+) -> std::result::Result<reqwest::Response, GithubError> {
+    if resp.status().is_success() {
+        return Ok(resp);
+    }
+    let status = resp.status().as_u16();
+    let message = resp
+        .text()
+        .await
+        .unwrap_or_else(|_| "<unreadable>".to_string());
+    Err(GithubError::ApiError { status, message })
+}
+
 pub fn find_matching_asset(
     release: &Release,
     platform: Platform,
@@ -323,7 +315,7 @@ pub fn find_matching_asset(
     let candidates: Vec<&Asset> = release
         .assets
         .iter()
-        .filter(|a| !is_checksum_file(&a.name))
+        .filter(|a| !crate::core::checksum::is_checksum_asset(&a.name))
         .collect();
 
     if candidates.is_empty() {
@@ -333,49 +325,15 @@ pub fn find_matching_asset(
         });
     }
 
-    let aliases = platform.aliases();
+    let arch = match platform {
+        Platform::LinuxX86_64 => Arch::X86_64,
+        Platform::LinuxAarch64 => Arch::Aarch64,
+    };
+
     let mut best: Option<(i32, &Asset)> = None;
 
     for asset in candidates {
-        let name_lower = asset.name.to_lowercase();
-        let mut score = 0;
-
-        for alias in aliases {
-            if name_lower.contains(alias) {
-                score += 10;
-                break;
-            }
-        }
-
-        if score == 0 && name_lower.contains("linux") {
-            score += 5;
-        }
-
-        if score >= 5 {
-            if name_lower.ends_with(".tar.gz")
-                || name_lower.ends_with(".tgz")
-                || name_lower.ends_with(".tar.xz")
-                || name_lower.ends_with(".tar.bz2")
-                || name_lower.ends_with(".zip")
-                || name_lower.ends_with(".appimage")
-                || name_lower.ends_with(".deb")
-                || name_lower.ends_with(".rpm")
-                || name_lower.ends_with(".tar")
-            {
-                score += 5;
-            }
-
-            if name_lower.ends_with(".sh") {
-                score += 2;
-            }
-        }
-
-        if name_lower.contains("checksum")
-            || name_lower.contains("sha256")
-            || name_lower.contains("sha512")
-        {
-            score -= 100;
-        }
+        let score = crate::network::platform::score_asset(&asset.name, arch);
 
         if score > 0 {
             match best {
@@ -393,17 +351,6 @@ pub fn find_matching_asset(
             platform: platform.to_string(),
             release: release.tag_name.clone(),
         })
-}
-
-fn is_checksum_file(name: &str) -> bool {
-    let lower = name.to_lowercase();
-    lower.ends_with(".sha256")
-        || lower.ends_with(".sha512")
-        || lower.ends_with(".sha")
-        || lower.ends_with(".sig")
-        || lower.ends_with(".asc")
-        || lower.ends_with(".checksum")
-        || lower.contains("checksum")
 }
 
 pub fn parse_package(input: &str) -> Result<(String, String, Option<String>)> {
@@ -434,16 +381,13 @@ pub async fn search_releases(
 
     let client = GithubClient::new(config.github_token.clone())?;
 
-    let per_page = limit.min(100);
+    let per_page = limit.min(SEARCH_LIMIT_MAX);
     let url = format!(
         "{}/repos/{}/{}/releases?per_page={}",
-        GITHUB_API, owner, repo, per_page
+        GITHUB_API_BASE, owner, repo, per_page
     );
     let resp = client.add_auth(client.client.get(&url)).send().await?;
-
-    if !resp.status().is_success() {
-        bail!("GitHub API error: {}.", resp.status());
-    }
+    let resp = check_api_response(resp).await?;
 
     let has_next = resp
         .headers()
@@ -488,7 +432,7 @@ pub async fn search_releases(
             r.tag_name.green().bold(),
             name_display.dimmed(),
             asset_count.to_string().cyan(),
-            format_size(total_size).cyan()
+            format_bytes(total_size).cyan()
         );
     }
 
@@ -504,17 +448,4 @@ pub async fn search_releases(
     }
 
     Ok(())
-}
-
-fn format_size(b: u64) -> String {
-    const KB: f64 = 1024.0;
-    let b = b as f64;
-
-    if b < KB {
-        format!("{:.0} B", b)
-    } else if b < KB * KB {
-        format!("{:.1} KB", b / KB)
-    } else {
-        format!("{:.1} MB", b / KB / KB)
-    }
 }

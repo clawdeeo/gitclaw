@@ -6,8 +6,7 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
 use crate::core::config::Config;
-
-const ALIASES_FILE: &str = "aliases.toml";
+use crate::core::constants::{ALIASES_FILE, KV_KEY_WIDTH};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AliasMap {
@@ -29,8 +28,10 @@ impl AliasMap {
 
     pub fn save(&self, config: &Config) -> Result<()> {
         let path = config.install_dir.join(ALIASES_FILE);
+
         let content =
             toml::to_string_pretty(self).with_context(|| "Failed to serialize aliases")?;
+
         fs::write(&path, content).with_context(|| "Failed to write aliases file")
     }
 
@@ -123,10 +124,13 @@ pub fn handle_alias_list(config: &Config) -> Result<()> {
         return Ok(());
     }
 
-    println!("{}", format!("{:<20} {}", "Alias", "Target").bold());
+    println!(
+        "{}",
+        format!("{:<width$} {}", "Alias", "Target", width = KV_KEY_WIDTH).bold()
+    );
 
     for (alias, target) in &entries {
-        println!("{:<20} {}", alias.cyan(), target);
+        println!("{:<width$} {}", alias.cyan(), target, width = KV_KEY_WIDTH);
     }
 
     println!();
@@ -140,10 +144,12 @@ mod tests {
 
     fn make_config() -> (Config, tempfile::TempDir) {
         let dir = tempfile::tempdir().unwrap();
+
         let config = Config {
             install_dir: dir.path().to_path_buf(),
             ..Config::default()
         };
+
         (config, dir)
     }
 
@@ -159,6 +165,7 @@ mod tests {
     fn test_alias_add_slash_rejected() {
         let (config, _dir) = make_config();
         let mut aliases = AliasMap::default();
+
         assert!(aliases
             .add("owner/repo", "BurntSushi/ripgrep", &config)
             .is_err());
@@ -207,4 +214,17 @@ mod tests {
         assert_eq!(loaded.resolve("rg"), Some("BurntSushi/ripgrep"));
         assert_eq!(loaded.resolve("fd"), Some("sharkdp/fd"));
     }
+}
+
+pub fn resolve_package_input(input: &str, config: &Config) -> Result<String> {
+    if input.contains('/') {
+        return Ok(input.to_string());
+    }
+
+    if let Some(target) = AliasMap::load(config)?.resolve(input) {
+        crate::output::print_info(&format!("Alias '{}' -> '{}'.", input, target));
+        return Ok(target.to_string());
+    }
+
+    Ok(input.to_string())
 }
