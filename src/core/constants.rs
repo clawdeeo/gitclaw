@@ -1,6 +1,6 @@
 pub const APP_NAME: &str = "gitclaw";
 pub const APP_NAME_SHORT: &str = "gcw";
-pub const REPO_OWNER: &str = "clawdeeo";
+pub const REPO_OWNER: &str = "airscripts";
 pub const REPO_NAME: &str = "gitclaw";
 
 pub const GITCLAW_DIR: &str = ".gitclaw";

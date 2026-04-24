@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/clawdeeo/gitclaw.git
+git clone https://github.com/airscripts/gitclaw.git
 cd gitclaw
 cargo build
 cargo test
