@@ -13,6 +13,6 @@ jobs:
     container: rust:1.75-slim
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: apt-get update && apt-get install -y pkg-config libssl-dev
       - run: cargo test
