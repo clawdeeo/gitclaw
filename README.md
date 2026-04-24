@@ -19,36 +19,24 @@ gcw install sharkdp/bat
 gcw list
 ```
 
-See the [full command reference](#commands) below.
-
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `install <owner/repo>` | Install a package from GitHub releases |
-| `install <owner/repo> "^14"` | Install with a semver range |
-| `install --locked` | Install exact versions from the lockfile |
-| `install --local <owner/repo>` | Install to the project-local `.gitclaw/` directory |
-| `install --channel nightly <owner/repo>` | Install from a specific release channel |
-| `list` | List installed packages |
-| `list --outdated` | Show packages with newer versions available |
-| `list --verbose` | Show detailed package information |
-| `update [package]` | Update a package (or all if none specified) |
-| `uninstall <package>` | Uninstall a package |
-| `search <owner/repo>` | Browse available releases |
-| `lock` | Generate a lockfile from installed packages |
-| `alias add <name> <owner/repo>` | Create a short name for a package |
-| `alias remove <name>` | Remove an alias |
-| `alias list` | List all aliases |
-| `cache size` | Show total cache size on disk |
-| `cache clean` | Remove all cached archives |
-| `export [-o file]` | Export installed packages as TOML |
-| `import <file>` | Install packages from a TOML file |
-| `self-update` | Update gitclaw to the latest version |
-| `self-update --check` | Check for updates without installing |
-| `completions <shell>` | Generate shell completions |
-| `platform` | Show platform information |
-| `run <package> [args...]` | Run an installed package |
+| alias | Manage package aliases. |
+| cache | Manage the asset cache. |
+| completions | Generate shell completions. |
+| export | Export installed packages to TOML. |
+| import | Install packages from a TOML file. |
+| install | Install packages from GitHub releases. |
+| list | List installed packages. |
+| lock | Generate a lockfile from installed packages. |
+| platform | Show platform information. |
+| run | Run an installed package. |
+| search | Search for releases on GitHub. |
+| self | Update gitclaw to the latest version. |
+| uninstall | Uninstall a package. |
+| update | Update installed packages. |
 
 ## Configuration
 
