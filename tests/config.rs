@@ -128,24 +128,24 @@ fn config_merge_precedence() {
 }
 
 #[test]
-fn github_token_accessor() {
+fn github_token_field() {
     let config = Config {
         github_token: Some("test-token".to_string()),
         ..Default::default()
     };
-    assert_eq!(config.github_token(), Some("test-token"));
+    assert_eq!(config.github_token.as_deref(), Some("test-token"));
 
     let config_no_token = Config::default();
-    assert_eq!(config_no_token.github_token(), None);
+    assert_eq!(config_no_token.github_token.as_deref(), None);
 }
 
 #[test]
-fn install_dir_accessor() {
+fn install_dir_field() {
     let config = Config {
         install_dir: PathBuf::from("/custom/install"),
         ..Default::default()
     };
-    assert_eq!(config.install_dir(), &PathBuf::from("/custom/install"));
+    assert_eq!(config.install_dir, PathBuf::from("/custom/install"));
 }
 
 #[test]

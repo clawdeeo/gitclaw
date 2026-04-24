@@ -94,11 +94,6 @@ impl Platform {
         }
     }
 
-    #[allow(dead_code)]
-    fn extensions(&self) -> &[&'static str] {
-        &[".tar.gz", ".tar.xz", ".tar.bz2", ".tgz", ".zip"]
-    }
-
     pub fn current() -> Result<Self> {
         match std::env::consts::ARCH {
             "x86_64" => Ok(Platform::LinuxX86_64),

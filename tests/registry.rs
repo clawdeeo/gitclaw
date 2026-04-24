@@ -199,16 +199,6 @@ asset_name = "pkg.tar.gz"
 }
 
 #[test]
-fn test_bin_dir() {
-    let _ = gitclaw::registry::bin_dir();
-}
-
-#[test]
-fn test_gitclaw_home() {
-    let _ = gitclaw::registry::gitclaw_home();
-}
-
-#[test]
 fn test_registry_is_not_installed() {
     let registry = gitclaw::registry::Registry::default();
     assert!(!registry.is_installed("nonexistent/package"));

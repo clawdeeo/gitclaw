@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use tempfile::TempDir;
 
-use gitclaw::lockfile::Lockfile;
+use gitclaw::lockfile::{LockEntry, Lockfile};
 use gitclaw::registry::{InstalledPackage, Registry};
 
 fn make_pkg(name: &str, owner: &str, repo: &str, version: &str, asset: &str) -> InstalledPackage {
@@ -56,7 +56,7 @@ fn test_lockfile_roundtrip() {
     let dir = TempDir::new().unwrap();
 
     let lockfile = Lockfile {
-        packages: vec![gitclaw::lockfile::LockEntry {
+        packages: vec![LockEntry {
             owner: "BurntSushi".to_string(),
             repo: "ripgrep".to_string(),
             version: "v14.1.0".to_string(),
@@ -76,7 +76,7 @@ fn test_lockfile_roundtrip() {
 #[test]
 fn test_lockfile_toml_format() {
     let lockfile = Lockfile {
-        packages: vec![gitclaw::lockfile::LockEntry {
+        packages: vec![LockEntry {
             owner: "sharkdp".to_string(),
             repo: "fd".to_string(),
             version: "v10.2.0".to_string(),
@@ -98,7 +98,7 @@ fn test_lockfile_empty_registry() {
 }
 
 #[test]
-fn test_lockfile_is_present() {
+fn test_is_present() {
     let dir = TempDir::new().unwrap();
     assert!(!Lockfile::is_present(dir.path()));
 

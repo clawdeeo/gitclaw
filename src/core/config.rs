@@ -178,14 +178,4 @@ impl Config {
             self.output.verbose = other.output.verbose;
         }
     }
-
-    #[allow(dead_code)]
-    pub fn github_token(&self) -> Option<&str> {
-        self.github_token.as_deref()
-    }
-
-    #[allow(dead_code)]
-    pub fn install_dir(&self) -> &PathBuf {
-        &self.install_dir
-    }
 }

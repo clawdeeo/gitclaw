@@ -130,7 +130,6 @@ pub async fn handle_install(
 
         let cached_path = crate::core::cache::store(config, &cache_key, &temp_path)?;
 
-        // clean up temp
         let _ = fs::remove_file(&temp_path);
 
         cached_path

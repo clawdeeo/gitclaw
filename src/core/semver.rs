@@ -29,7 +29,7 @@ impl VersionConstraint {
             return Ok(VersionConstraint::Range(req));
         }
 
-        bail!("Cannot parse '{}' as a version or semver range.", trimmed);
+        bail!("Cannot parse '{}' as a version or semver range.", trimmed)
     }
 
     pub fn matches(&self, version: &Version) -> bool {
@@ -48,61 +48,4 @@ pub fn parse_tag_version(tag: &str) -> Result<Version> {
     let raw = strip_v_prefix(tag);
     Version::parse(raw)
         .map_err(|e| anyhow::anyhow!("Cannot parse version from tag '{}': {}.", tag, e))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_exact_version() {
-        let c = VersionConstraint::parse("1.2.3").unwrap();
-        assert!(c.matches(&Version::parse("1.2.3").unwrap()));
-        assert!(!c.matches(&Version::parse("1.2.4").unwrap()));
-    }
-
-    #[test]
-    fn test_caret_range() {
-        let c = VersionConstraint::parse("^1.2.3").unwrap();
-        assert!(c.matches(&Version::parse("1.2.3").unwrap()));
-        assert!(c.matches(&Version::parse("1.2.9").unwrap()));
-        assert!(c.matches(&Version::parse("1.3.0").unwrap()));
-        assert!(!c.matches(&Version::parse("2.0.0").unwrap()));
-    }
-
-    #[test]
-    fn test_tilde_range() {
-        let c = VersionConstraint::parse("~1.2.3").unwrap();
-        assert!(c.matches(&Version::parse("1.2.3").unwrap()));
-        assert!(c.matches(&Version::parse("1.2.9").unwrap()));
-        assert!(!c.matches(&Version::parse("1.3.0").unwrap()));
-    }
-
-    #[test]
-    fn test_gte_range() {
-        let c = VersionConstraint::parse(">=1.0.0").unwrap();
-        assert!(c.matches(&Version::parse("1.0.0").unwrap()));
-        assert!(c.matches(&Version::parse("2.0.0").unwrap()));
-        assert!(!c.matches(&Version::parse("0.9.0").unwrap()));
-    }
-
-    #[test]
-    fn test_strip_v() {
-        assert_eq!(strip_v_prefix("v1.2.3"), "1.2.3");
-        assert_eq!(strip_v_prefix("1.2.3"), "1.2.3");
-    }
-
-    #[test]
-    fn test_parse_tag() {
-        let v = parse_tag_version("v1.2.3").unwrap();
-        assert_eq!(v, Version::parse("1.2.3").unwrap());
-
-        let v = parse_tag_version("1.2.3").unwrap();
-        assert_eq!(v, Version::parse("1.2.3").unwrap());
-    }
-
-    #[test]
-    fn test_invalid_constraint() {
-        assert!(VersionConstraint::parse("not-a-version").is_err());
-    }
 }

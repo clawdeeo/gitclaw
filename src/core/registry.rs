@@ -38,20 +38,6 @@ pub struct Registry {
 }
 
 impl Registry {
-    #[allow(dead_code)]
-    fn default_path() -> Result<PathBuf> {
-        Ok(dirs::home_dir()
-            .ok_or_else(|| anyhow!("No home directory"))?
-            .join(".gitclaw")
-            .join("registry.toml"))
-    }
-
-    #[allow(dead_code)]
-    pub fn load() -> Result<Self> {
-        let p = Self::default_path()?;
-        Self::load_from(&p)
-    }
-
     pub fn load_from(path: &PathBuf) -> Result<Self> {
         if !path.exists() {
             return Ok(Self {
@@ -86,18 +72,6 @@ impl Registry {
     pub fn remove(&mut self, name: &str) -> Option<InstalledPackage> {
         self.packages.remove(name)
     }
-}
-
-#[allow(dead_code)]
-pub fn gitclaw_home() -> Result<PathBuf> {
-    Ok(dirs::home_dir()
-        .ok_or_else(|| anyhow!("No home directory"))?
-        .join(".gitclaw"))
-}
-
-#[allow(dead_code)]
-pub fn bin_dir() -> Result<PathBuf> {
-    Ok(gitclaw_home()?.join("bin"))
 }
 
 pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {

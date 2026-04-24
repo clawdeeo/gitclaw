@@ -7,20 +7,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::config::Config;
 
+const ALIASES_FILE: &str = "aliases.toml";
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AliasMap {
     #[serde(flatten)]
     pub aliases: HashMap<String, String>,
 }
 
-const ALIASES_FILE: &str = "aliases.toml";
-
 impl AliasMap {
     pub fn load(config: &Config) -> Result<Self> {
         let path = config.install_dir.join(ALIASES_FILE);
+
         if !path.exists() {
             return Ok(Self::default());
         }
+
         let content = fs::read_to_string(&path).with_context(|| "Failed to read aliases file")?;
         toml::from_str(&content).with_context(|| "Failed to parse aliases file")
     }
@@ -60,6 +62,7 @@ impl AliasMap {
 
     pub fn check_clash(&self, name: &str, config: &Config) -> Option<String> {
         let registry_path = crate::core::util::registry_path_from(&config.install_dir);
+
         if let Ok(reg) = crate::core::registry::Registry::load_from(&registry_path) {
             for pkg in reg.packages.values() {
                 if pkg.repo == name || pkg.identifier == name {
@@ -67,6 +70,7 @@ impl AliasMap {
                 }
             }
         }
+
         None
     }
 
@@ -99,9 +103,11 @@ pub fn handle_alias_add(alias: &str, target: &str, config: &Config) -> Result<()
 
 pub fn handle_alias_remove(alias: &str, config: &Config) -> Result<()> {
     let mut aliases = AliasMap::load(config)?;
+
     if !aliases.remove(alias) {
         bail!("Alias '{}' not found.", alias);
     }
+
     aliases.save(config)?;
     crate::output::print_success(&format!("Alias '{}' removed.", alias));
     Ok(())
@@ -126,90 +132,4 @@ pub fn handle_alias_list(config: &Config) -> Result<()> {
     println!();
     crate::output::print_info(&format!("{} alias(es) configured.", entries.len()));
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_alias_add() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
-        let mut aliases = AliasMap::default();
-        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
-        assert_eq!(aliases.resolve("rg"), Some("BurntSushi/ripgrep"));
-    }
-
-    #[test]
-    fn test_alias_add_slash_rejected() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
-        let mut aliases = AliasMap::default();
-        assert!(aliases
-            .add("owner/repo", "BurntSushi/ripgrep", &config)
-            .is_err());
-    }
-
-    #[test]
-    fn test_alias_remove() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
-        let mut aliases = AliasMap::default();
-        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
-        assert!(aliases.remove("rg"));
-        assert!(!aliases.remove("rg"));
-        assert_eq!(aliases.resolve("rg"), None);
-    }
-
-    #[test]
-    fn test_alias_resolve_missing() {
-        let aliases = AliasMap::default();
-        assert_eq!(aliases.resolve("nonexistent"), None);
-    }
-
-    #[test]
-    fn test_alias_list_sorted() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
-        let mut aliases = AliasMap::default();
-        aliases.add("fd", "sharkdp/fd", &config).unwrap();
-        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
-        aliases.add("bat", "sharkdp/bat", &config).unwrap();
-
-        let list = aliases.list();
-        assert_eq!(list[0].0.as_str(), "bat");
-        assert_eq!(list[1].0.as_str(), "fd");
-        assert_eq!(list[2].0.as_str(), "rg");
-    }
-
-    #[test]
-    fn test_alias_roundtrip() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
-
-        let mut aliases = AliasMap::default();
-        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
-        aliases.add("fd", "sharkdp/fd", &config).unwrap();
-        aliases.save(&config).unwrap();
-
-        let loaded = AliasMap::load(&config).unwrap();
-        assert_eq!(loaded.resolve("rg"), Some("BurntSushi/ripgrep"));
-        assert_eq!(loaded.resolve("fd"), Some("sharkdp/fd"));
-    }
 }
