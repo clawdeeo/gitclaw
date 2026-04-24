@@ -111,7 +111,11 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
             "{}",
             format!(
                 "{:<width_pkg$} {:<width_id$} {:<width_ver$} {:<width_path$} {}",
-                "Package", "Identifier", "Version", "Path", "Date",
+                "Package",
+                "Identifier",
+                "Version",
+                "Path",
+                "Date",
                 width_pkg = COL_LIST_PACKAGE,
                 width_id = COL_LIST_IDENTIFIER,
                 width_ver = COL_LIST_VERSION,

@@ -139,7 +139,8 @@ impl GithubClient {
         };
 
         let url = format!(
-            "{}{}", GITHUB_API_BASE,
+            "{}{}",
+            GITHUB_API_BASE,
             GITHUB_API_PATH_RELEASES_TAG
                 .replacen("{}", owner, 1)
                 .replacen("{}", repo, 1)
@@ -155,7 +156,8 @@ impl GithubClient {
 
         if tag_normalized.starts_with('v') && tag_normalized != tag {
             let url = format!(
-                "{}{}", GITHUB_API_BASE,
+                "{}{}",
+                GITHUB_API_BASE,
                 GITHUB_API_PATH_RELEASES_TAG
                     .replacen("{}", owner, 1)
                     .replacen("{}", repo, 1)
@@ -199,7 +201,8 @@ impl GithubClient {
         repo: &str,
     ) -> std::result::Result<Release, GithubError> {
         let url = format!(
-            "{}{}", GITHUB_API_BASE,
+            "{}{}",
+            GITHUB_API_BASE,
             GITHUB_API_PATH_RELEASES_LATEST
                 .replacen("{}", owner, 1)
                 .replacen("{}", repo, 1)
@@ -229,7 +232,8 @@ impl GithubClient {
         repo: &str,
     ) -> std::result::Result<Vec<Release>, GithubError> {
         let url = format!(
-            "{}{}", GITHUB_API_BASE,
+            "{}{}",
+            GITHUB_API_BASE,
             GITHUB_API_PATH_RELEASES
                 .replacen("{}", owner, 1)
                 .replacen("{}", repo, 1)
@@ -402,7 +406,8 @@ pub async fn search_releases(
 
     let per_page = limit.min(SEARCH_LIMIT_MAX);
     let url = format!(
-        "{}{}", GITHUB_API_BASE,
+        "{}{}",
+        GITHUB_API_BASE,
         GITHUB_API_PATH_RELEASES_PAGED
             .replacen("{}", &owner, 1)
             .replacen("{}", &repo, 1)
@@ -433,7 +438,10 @@ pub async fn search_releases(
         "{}",
         format!(
             "{:<width_tag$} {:<width_name$} {:<width_assets$} {}",
-            "Tag", "Name", "Assets", "Total Size",
+            "Tag",
+            "Name",
+            "Assets",
+            "Total Size",
             width_tag = COL_SEARCH_TAG,
             width_name = COL_SEARCH_NAME,
             width_assets = COL_SEARCH_ASSETS,

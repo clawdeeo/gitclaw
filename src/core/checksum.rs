@@ -6,8 +6,8 @@ use anyhow::{bail, Context, Result};
 use sha2::{Digest, Sha256, Sha512};
 
 use crate::core::constants::{
-    EXT_CHECKSUM, EXT_MD5, EXT_SHA, EXT_SHA256, EXT_SHA512, EXT_SIG, EXT_ASC,
-    STR_CHECKSUM, STR_SHA256SUM, STR_SHA512SUM,
+    EXT_ASC, EXT_CHECKSUM, EXT_MD5, EXT_SHA, EXT_SHA256, EXT_SHA512, EXT_SIG, STR_CHECKSUM,
+    STR_SHA256SUM, STR_SHA512SUM,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

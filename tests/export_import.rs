@@ -95,7 +95,12 @@ fn test_export_roundtrip() {
 #[test]
 fn test_export_from_registry_sorted() {
     let mut reg = Registry::default();
-    reg.add(sample_pkg(&format!("{}/{}", FD_OWNER, FD_REPO), FD_OWNER, FD_REPO, FD_VERSION));
+    reg.add(sample_pkg(
+        &format!("{}/{}", FD_OWNER, FD_REPO),
+        FD_OWNER,
+        FD_REPO,
+        FD_VERSION,
+    ));
 
     reg.add(sample_pkg(
         &format!("{}/{}", OWNER, REPO),
@@ -104,7 +109,12 @@ fn test_export_from_registry_sorted() {
         VERSION,
     ));
 
-    reg.add(sample_pkg(&format!("{}/{}", FD_OWNER, BAT_REPO), FD_OWNER, BAT_REPO, BAT_VERSION));
+    reg.add(sample_pkg(
+        &format!("{}/{}", FD_OWNER, BAT_REPO),
+        FD_OWNER,
+        BAT_REPO,
+        BAT_VERSION,
+    ));
 
     let export = ExportFile::from_registry(&reg);
     assert_eq!(export.packages[0].owner, OWNER);

@@ -91,7 +91,8 @@ pub const COL_SEARCH_ASSETS: usize = 8;
 pub const COL_SEARCH_NAME_MAX: usize = 40;
 pub const COL_SEARCH_NAME_TRUNCATE: usize = 37;
 
-pub const COL_LIST_PACKAGE: usize = 25;pub const COL_LIST_IDENTIFIER: usize = 20;
+pub const COL_LIST_PACKAGE: usize = 25;
+pub const COL_LIST_IDENTIFIER: usize = 20;
 pub const COL_LIST_VERSION: usize = 15;
 pub const COL_LIST_PATH: usize = 30;
 pub const COL_LIST_PATH_MAX: usize = 28;
@@ -113,4 +114,3 @@ pub const PLATFORM_X86_64_GNU: &str = "x86_64-unknown-linux-gnu";
 pub const PLATFORM_X86_64_MUSL: &str = "x86_64-unknown-linux-musl";
 pub const PLATFORM_AARCH64_GNU: &str = "aarch64-unknown-linux-gnu";
 pub const PLATFORM_AARCH64_MUSL: &str = "aarch64-unknown-linux-musl";
-

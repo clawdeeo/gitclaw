@@ -76,7 +76,10 @@ fn test_registry_save_load_with_channel() {
     let rg = loaded.packages.get(&format!("{}/{}", OWNER, REPO)).unwrap();
     assert_eq!(rg.channel, Some(Channel::Nightly));
 
-    let fd = loaded.packages.get(&format!("{}/{}", FD_OWNER, FD_REPO)).unwrap();
+    let fd = loaded
+        .packages
+        .get(&format!("{}/{}", FD_OWNER, FD_REPO))
+        .unwrap();
     assert_eq!(fd.channel, None);
 }
 

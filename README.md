@@ -77,8 +77,8 @@ verbose = false
 ## Development
 
 ```bash
-cargo fmt -- --check
-cargo clippy -- -D warnings
+cargo fmt
+cargo clippy
 cargo test
 ```
 

@@ -294,12 +294,14 @@ async fn fetch_latest_for_channel(
 ) -> Result<Release> {
     let releases = client.get_releases(owner, repo).await?;
     let filtered = crate::core::channel::filter_releases(&releases, channel, None);
+
     if filtered.is_empty() {
         bail!("No {} release found for {}/{}.", channel, owner, repo);
     }
-    Ok(filtered.into_iter().next().ok_or_else(|| {
+
+    filtered.into_iter().next().ok_or_else(|| {
         anyhow::anyhow!("Invariant: filtered list was non-empty but next() returned None")
-    })?)
+    })
 }
 
 fn select_best_asset(release: &Release) -> Result<&Asset> {
@@ -436,9 +438,9 @@ async fn find_matching_release(
         vb.cmp(&va)
     });
 
-    Ok(matching.into_iter().next().ok_or_else(|| {
+    matching.into_iter().next().ok_or_else(|| {
         anyhow::anyhow!("Invariant: matching list was non-empty but next() returned None")
-    })?)
+    })
 }
 
 fn constraint_display(constraint: &VersionConstraint) -> String {
