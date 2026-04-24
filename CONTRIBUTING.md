@@ -25,12 +25,15 @@ cargo test
 ## Submitting Changes
 
 1. Branch from `main` with a prefix: `fix/`, `feat/`, `docs/`, `chore/`
+
 2. Verify before pushing:
+
    ```bash
-   cargo fmt -- --check
-   cargo clippy -- -D warnings
+   cargo fmt
+   cargo clippy
    cargo test
    ```
+
 3. Open a PR, squash merge into `main`
 
 ## Commit Messages

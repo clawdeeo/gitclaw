@@ -1,10 +1,14 @@
 use std::env;
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
+use walkdir::WalkDir;
 
 use crate::core::constants::{
-    CONFIG_FILE, DIR_BIN, DIR_CACHE, DIR_DOWNLOADS, DIR_PACKAGES, GITCLAW_DIR, REGISTRY_FILE,
+    CONFIG_FILE, DIR_BIN, DIR_CACHE, DIR_DOWNLOADS, DIR_PACKAGES, EXEC_PERMISSION_BITS,
+    GITCLAW_DIR, REGISTRY_FILE, WALK_MAX_DEPTH,
 };
 
 pub fn home_dir() -> Result<PathBuf> {
@@ -48,11 +52,8 @@ pub fn config_path() -> Result<PathBuf> {
 }
 
 pub fn is_in_path(binary: &str) -> bool {
-    env::var("PATH")
-        .map(|path| {
-            path.split(':')
-                .any(|dir| PathBuf::from(dir).join(binary).exists())
-        })
+    env::var_os("PATH")
+        .map(|path| std::env::split_paths(&path).any(|dir| dir.join(binary).exists()))
         .unwrap_or(false)
 }
 
@@ -66,4 +67,51 @@ pub fn format_bytes(bytes: u64) -> String {
     let exponent = (bytes as f64).log(1024.0).min(UNITS.len() as f64 - 1.0) as usize;
     let value = bytes as f64 / 1024f64.powi(exponent as i32);
     format!("{:.1} {}", value, UNITS[exponent])
+}
+
+pub fn package_key(owner: &str, repo: &str) -> String {
+    format!("{}/{}", owner, repo)
+}
+
+pub fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
+    for entry in WalkDir::new(dir).max_depth(WALK_MAX_DEPTH) {
+        let entry = entry?;
+
+        if !entry.file_type().is_file() {
+            continue;
+        }
+
+        let stem = entry
+            .path()
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy();
+
+        if stem != repo_name {
+            continue;
+        }
+
+        if fs::metadata(entry.path())
+            .map(|m| m.permissions().mode() & EXEC_PERMISSION_BITS != 0)
+            .unwrap_or(false)
+        {
+            return Ok(entry.path().to_path_buf());
+        }
+    }
+
+    for entry in WalkDir::new(dir).max_depth(WALK_MAX_DEPTH) {
+        let entry = entry?;
+        if !entry.file_type().is_file() {
+            continue;
+        }
+
+        if fs::metadata(entry.path())
+            .map(|m| m.permissions().mode() & EXEC_PERMISSION_BITS != 0)
+            .unwrap_or(false)
+        {
+            return Ok(entry.path().to_path_buf());
+        }
+    }
+
+    bail!("No binary found in {}", dir.display())
 }

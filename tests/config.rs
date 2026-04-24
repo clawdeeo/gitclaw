@@ -3,16 +3,15 @@ use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
-use gitclaw::config::{Config, DownloadConfig, OutputConfig};
+use gitclaw::config::{ColorMode, Config, DownloadConfig, OutputConfig};
 
 #[test]
 fn default_config_values() {
     let config = Config::default();
-
     assert!(config.download.show_progress);
     assert!(config.download.prefer_strip);
     assert!(config.download.verify_checksums);
-    assert_eq!(config.output.color, "auto");
+    assert_eq!(config.output.color, ColorMode::Auto);
     assert!(!config.output.quiet);
     assert!(!config.output.verbose);
 }
@@ -44,7 +43,7 @@ color = "never"
     assert_eq!(config.install_dir, PathBuf::from("/custom/bin"));
     assert_eq!(config.github_token, Some("test-token".to_string()));
     assert!(!config.download.show_progress);
-    assert_eq!(config.output.color, "never");
+    assert_eq!(config.output.color, ColorMode::Never);
 
     env::set_current_dir(original_dir).unwrap();
 }
@@ -102,17 +101,19 @@ verbose = true
 fn config_merge_precedence() {
     let mut config = Config::default();
     assert!(config.download.show_progress);
-    assert_eq!(config.output.color, "auto");
+    assert_eq!(config.output.color, ColorMode::Auto);
 
     let other = Config {
         install_dir: PathBuf::from("/other"),
         github_token: Some("other".to_string()),
+
         download: DownloadConfig {
             show_progress: false,
             ..Default::default()
         },
+
         output: OutputConfig {
-            color: "never".to_string(),
+            color: ColorMode::Never,
             verbose: true,
             ..Default::default()
         },
@@ -123,7 +124,7 @@ fn config_merge_precedence() {
     assert_eq!(config.install_dir, PathBuf::from("/other"));
     assert_eq!(config.github_token, Some("other".to_string()));
     assert!(!config.download.show_progress);
-    assert_eq!(config.output.color, "never");
+    assert_eq!(config.output.color, ColorMode::Never);
     assert!(config.output.verbose);
 }
 
@@ -133,8 +134,8 @@ fn github_token_field() {
         github_token: Some("test-token".to_string()),
         ..Default::default()
     };
-    assert_eq!(config.github_token.as_deref(), Some("test-token"));
 
+    assert_eq!(config.github_token.as_deref(), Some("test-token"));
     let config_no_token = Config::default();
     assert_eq!(config_no_token.github_token.as_deref(), None);
 }
@@ -145,6 +146,7 @@ fn install_dir_field() {
         install_dir: PathBuf::from("/custom/install"),
         ..Default::default()
     };
+
     assert_eq!(config.install_dir, PathBuf::from("/custom/install"));
 }
 
@@ -159,7 +161,7 @@ fn download_config_default() {
 #[test]
 fn output_config_default() {
     let out = OutputConfig::default();
-    assert_eq!(out.color, "auto");
+    assert_eq!(out.color, ColorMode::Auto);
     assert!(!out.quiet);
     assert!(!out.verbose);
 }

@@ -1,6 +1,8 @@
 use colored::Colorize;
 use rand::seq::SliceRandom;
 
+use crate::core::constants::{APP_NAME, KV_KEY_WIDTH};
+
 pub const BANNER: &str = r#"
        _ _       _
       (_) |     | |
@@ -37,11 +39,13 @@ const TAGLINES: [&str; 20] = [
 
 pub fn print_version_line() {
     let version = env!("CARGO_PKG_VERSION");
-    let tagline = TAGLINES.choose(&mut rand::thread_rng()).unwrap();
+    let tagline = TAGLINES
+        .choose(&mut rand::thread_rng())
+        .unwrap_or(&TAGLINES[0]);
 
     println!(
         "{} {}",
-        format!("gitclaw v{}", version).cyan().bold(),
+        format!("{} v{}", APP_NAME, version).cyan().bold(),
         format!("({})", tagline).dimmed()
     );
 
@@ -73,7 +77,11 @@ pub fn print_error(text: &str) {
 }
 
 pub fn print_kv(key: &str, value: &str) {
-    println!("  {} {}", format!("{:20}", key).dimmed(), value);
+    println!(
+        "  {} {}",
+        format!("{:width$}", key, width = KV_KEY_WIDTH).dimmed(),
+        value
+    );
 }
 
 pub fn print_install_complete(name: &str, binary_path: &str) {

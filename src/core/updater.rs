@@ -4,13 +4,14 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context, Result};
 use colored::Colorize;
-use walkdir::WalkDir;
 
 use crate::core::config::Config;
 use crate::core::constants::{
-    APP_NAME, DIR_EXTRACTED, RELEASE_TAG_LATEST, REPO_NAME, REPO_OWNER, TEMP_DIR_SELF_UPDATE,
+    APP_NAME, DIR_EXTRACTED, EXEC_PERMISSION_MODE, RELEASE_TAG_LATEST, REPO_NAME, REPO_OWNER,
+    TEMP_DIR_SELF_UPDATE, UPDATER_BACKUP_EXT,
 };
-use crate::core::extract::extract_archive;
+use crate::core::extract::{detect_archive_type, extract_archive, ArchiveType};
+use crate::core::util::find_binary;
 use crate::network::github::{find_matching_asset, GithubClient, Platform};
 use crate::output;
 
@@ -92,10 +93,19 @@ pub async fn perform_update(config: &Config) -> Result<()> {
 
     let current_exe = current_executable()?;
 
-    if asset.name.ends_with(".tar.gz")
-        || asset.name.ends_with(".zip")
-        || asset.name.ends_with(".tar.xz")
-    {
+    let archive_type = detect_archive_type(&download_path).ok();
+    let is_archive = matches!(
+        archive_type,
+        Some(
+            ArchiveType::TarGz
+                | ArchiveType::Zip
+                | ArchiveType::TarXz
+                | ArchiveType::TarBz2
+                | ArchiveType::TarZst
+        )
+    );
+
+    if is_archive {
         let extract_dir = temp_dir.join(DIR_EXTRACTED);
         output::print_info("Extracting.");
         extract_archive(&download_path, &extract_dir, true)?;
@@ -114,35 +124,14 @@ pub async fn perform_update(config: &Config) -> Result<()> {
     Ok(())
 }
 
-fn find_binary(dir: &std::path::Path, name: &str) -> Result<PathBuf> {
-    for entry in WalkDir::new(dir).max_depth(2) {
-        let entry = entry?;
-        if !entry.file_type().is_file() {
-            continue;
-        }
-
-        let file_name = entry
-            .path()
-            .file_stem()
-            .unwrap_or_default()
-            .to_string_lossy();
-
-        if file_name == name {
-            return Ok(entry.path().to_path_buf());
-        }
-    }
-
-    bail!("Binary '{}' not found in extracted archive.", name)
-}
-
 fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()> {
-    let backup = current.with_extension("backup");
+    let backup = current.with_extension(UPDATER_BACKUP_EXT);
     std::fs::rename(current, &backup)?;
 
     match std::fs::copy(new, current) {
         Ok(_) => {
             let mut perms = std::fs::metadata(current)?.permissions();
-            perms.set_mode(0o755);
+            perms.set_mode(EXEC_PERMISSION_MODE);
             std::fs::set_permissions(current, perms)?;
             let _ = std::fs::remove_file(&backup);
             Ok(())

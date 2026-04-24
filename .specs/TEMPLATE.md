@@ -1,42 +1,59 @@
-# Spec Template
+# Spec Title — Short Descriptor
 
-## Small Change (bug fix, tweak)
-Skip this template. Write a clear PR description instead.
+## Goal
 
-## Feature / New Behavior
-
-### Problem
-[What problem does this solve?]
-
-### Solution
-[High-level approach]
-
-### Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
-
-### Edge Cases
-- [ ] Edge case 1: [expected behavior]
-- [ ] Edge case 2: [expected behavior]
-
-### Test Plan
-- Unit tests: [what to test]
-- Integration tests: [what to test]
-- Manual verification: [steps]
-
-### Files to Modify
-- [ ] file.rs
-
-### Documentation Updates
-- [ ] CHANGELOG.md
-- [ ] README.md (if user-facing)
+[One or two sentences: what does this spec achieve and why.]
 
 ---
 
-## Checkpoints (tied to deliverables, not percentages)
+## Small Change (bug fix, tweak)
 
-- [ ] [Deliverable 1 — e.g., "Semver parsing compiles and passes tests"]
-- [ ] [Deliverable 2 — e.g., "Lockfile generates valid TOML"]
-- [ ] [Deliverable 3 — e.g., "Alias cycle works end-to-end"]
-- [ ] [Final review before PR]
+Skip this template. Write a clear PR description instead.
+
+---
+
+## 1. Section Name
+
+**What:** [One sentence describing the deliverable.]
+
+**Spec:**
+
+- Requirement 1
+- Requirement 2
+- Requirement 3
+
+**Checkpoint:** [Concrete, verifiable condition that confirms this section is done.]
+
+---
+
+## 2. Section Name
+
+**What:** [One sentence describing the deliverable.]
+
+**Spec:**
+
+- Requirement 1
+- Requirement 2
+
+**Checkpoint:** [Concrete, verifiable condition.]
+
+---
+
+## Implementation Order
+
+1. Section that must come first (e.g., audit / discovery)
+2. Section that depends on 1
+3. Section that depends on 2
+4. Final pass (fmt, clippy, test, version bump if applicable)
+
+## Test Plan
+
+- [Test category]: [what is tested]
+- [Test category]: [what is tested]
+- `cargo fmt && cargo clippy && cargo test` must pass
+
+## Files to Modify
+
+- [ ] file.rs
+- [ ] CHANGELOG.md
+- [ ] README.md (if user-facing)

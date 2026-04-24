@@ -1,3 +1,6 @@
+mod fixtures;
+
+use fixtures::{BAT_REPO, BAT_VERSION, FD_OWNER, FD_REPO, FD_VERSION, OWNER, REPO, VERSION};
 use tempfile::TempDir;
 
 use gitclaw::config::Config;
@@ -34,9 +37,9 @@ fn sample_pkg(name: &str, owner: &str, repo: &str, version: &str) -> InstalledPa
 #[test]
 fn test_export_entry_serialization() {
     let entry = ExportEntry {
-        owner: "BurntSushi".to_string(),
-        repo: "ripgrep".to_string(),
-        version: "13.0.0".to_string(),
+        owner: OWNER.to_string(),
+        repo: REPO.to_string(),
+        version: VERSION.to_string(),
     };
 
     let export = ExportFile {
@@ -44,9 +47,9 @@ fn test_export_entry_serialization() {
     };
 
     let toml_str = export.to_toml().unwrap();
-    assert!(toml_str.contains("BurntSushi"));
-    assert!(toml_str.contains("ripgrep"));
-    assert!(toml_str.contains("13.0.0"));
+    assert!(toml_str.contains(OWNER));
+    assert!(toml_str.contains(REPO));
+    assert!(toml_str.contains(VERSION));
 }
 
 #[test]
@@ -60,9 +63,9 @@ version = "8.7.0"
 
     let export = ExportFile::from_toml(toml_str).unwrap();
     assert_eq!(export.packages.len(), 1);
-    assert_eq!(export.packages[0].owner, "sharkdp");
-    assert_eq!(export.packages[0].repo, "fd");
-    assert_eq!(export.packages[0].version, "8.7.0");
+    assert_eq!(export.packages[0].owner, FD_OWNER);
+    assert_eq!(export.packages[0].repo, FD_REPO);
+    assert_eq!(export.packages[0].version, FD_VERSION);
 }
 
 #[test]
@@ -70,14 +73,14 @@ fn test_export_roundtrip() {
     let export = ExportFile {
         packages: vec![
             ExportEntry {
-                owner: "BurntSushi".to_string(),
-                repo: "ripgrep".to_string(),
-                version: "13.0.0".to_string(),
+                owner: OWNER.to_string(),
+                repo: REPO.to_string(),
+                version: VERSION.to_string(),
             },
             ExportEntry {
-                owner: "sharkdp".to_string(),
-                repo: "fd".to_string(),
-                version: "8.7.0".to_string(),
+                owner: FD_OWNER.to_string(),
+                repo: FD_REPO.to_string(),
+                version: FD_VERSION.to_string(),
             },
         ],
     };
@@ -92,20 +95,31 @@ fn test_export_roundtrip() {
 #[test]
 fn test_export_from_registry_sorted() {
     let mut reg = Registry::default();
-    reg.add(sample_pkg("sharkdp/fd", "sharkdp", "fd", "8.7.0"));
     reg.add(sample_pkg(
-        "BurntSushi/ripgrep",
-        "BurntSushi",
-        "ripgrep",
-        "13.0.0",
+        &format!("{}/{}", FD_OWNER, FD_REPO),
+        FD_OWNER,
+        FD_REPO,
+        FD_VERSION,
     ));
-    reg.add(sample_pkg("sharkdp/bat", "sharkdp", "bat", "0.24.0"));
+
+    reg.add(sample_pkg(
+        &format!("{}/{}", OWNER, REPO),
+        OWNER,
+        REPO,
+        VERSION,
+    ));
+
+    reg.add(sample_pkg(
+        &format!("{}/{}", FD_OWNER, BAT_REPO),
+        FD_OWNER,
+        BAT_REPO,
+        BAT_VERSION,
+    ));
 
     let export = ExportFile::from_registry(&reg);
-    // Sorted by owner then repo
-    assert_eq!(export.packages[0].owner, "BurntSushi");
-    assert_eq!(export.packages[1].repo, "bat");
-    assert_eq!(export.packages[2].repo, "fd");
+    assert_eq!(export.packages[0].owner, OWNER);
+    assert_eq!(export.packages[1].repo, BAT_REPO);
+    assert_eq!(export.packages[2].repo, FD_REPO);
 }
 
 #[test]
@@ -122,9 +136,9 @@ fn test_export_file_write_and_read() {
 
     let export = ExportFile {
         packages: vec![ExportEntry {
-            owner: "BurntSushi".to_string(),
-            repo: "ripgrep".to_string(),
-            version: "13.0.0".to_string(),
+            owner: OWNER.to_string(),
+            repo: REPO.to_string(),
+            version: VERSION.to_string(),
         }],
     };
 
@@ -133,7 +147,7 @@ fn test_export_file_write_and_read() {
 
     let loaded = ExportFile::from_file(&path).unwrap();
     assert_eq!(loaded.packages.len(), 1);
-    assert_eq!(loaded.packages[0].repo, "ripgrep");
+    assert_eq!(loaded.packages[0].repo, REPO);
 }
 
 #[test]
@@ -144,10 +158,10 @@ fn test_export_from_registry_with_config() {
 
     let mut reg = Registry::load_from(&reg_path).unwrap();
     reg.add(sample_pkg(
-        "BurntSushi/ripgrep",
-        "BurntSushi",
-        "ripgrep",
-        "13.0.0",
+        &format!("{}/{}", OWNER, REPO),
+        OWNER,
+        REPO,
+        VERSION,
     ));
     reg.save().unwrap();
 
@@ -161,22 +175,21 @@ fn test_export_toml_format() {
     let export = ExportFile {
         packages: vec![
             ExportEntry {
-                owner: "sharkdp".to_string(),
-                repo: "bat".to_string(),
-                version: "0.24.0".to_string(),
+                owner: FD_OWNER.to_string(),
+                repo: BAT_REPO.to_string(),
+                version: BAT_VERSION.to_string(),
             },
             ExportEntry {
-                owner: "sharkdp".to_string(),
-                repo: "fd".to_string(),
-                version: "8.7.0".to_string(),
+                owner: FD_OWNER.to_string(),
+                repo: FD_REPO.to_string(),
+                version: FD_VERSION.to_string(),
             },
         ],
     };
 
     let toml_str = export.to_toml().unwrap();
-    // Should use [[package]] array format
     assert!(toml_str.contains("[[package]]"));
-    assert!(toml_str.contains("owner = \"sharkdp\""));
-    assert!(toml_str.contains("repo = \"bat\""));
-    assert!(toml_str.contains("repo = \"fd\""));
+    assert!(toml_str.contains(&format!("owner = \"{}\"", FD_OWNER)));
+    assert!(toml_str.contains(&format!("repo = \"{}\"", BAT_REPO)));
+    assert!(toml_str.contains(&format!("repo = \"{}\"", FD_REPO)));
 }

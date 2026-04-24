@@ -1,18 +1,23 @@
+mod fixtures;
+
+use fixtures::{OWNER, PACKAGE, REPO, VERSION};
+
 #[test]
 fn test_parse_package_simple() {
-    let (owner, repo, version) = gitclaw::github::parse_package("BurntSushi/ripgrep").unwrap();
-    assert_eq!(owner, "BurntSushi");
-    assert_eq!(repo, "ripgrep");
+    let (owner, repo, version) = gitclaw::github::parse_package(PACKAGE).unwrap();
+    assert_eq!(owner, OWNER);
+    assert_eq!(repo, REPO);
     assert!(version.is_none());
 }
 
 #[test]
 fn test_parse_package_with_version() {
     let (owner, repo, version) =
-        gitclaw::github::parse_package("BurntSushi/ripgrep@13.0.0").unwrap();
-    assert_eq!(owner, "BurntSushi");
-    assert_eq!(repo, "ripgrep");
-    assert_eq!(version, Some("13.0.0".to_string()));
+        gitclaw::github::parse_package(&format!("{}@{}", PACKAGE, VERSION)).unwrap();
+
+    assert_eq!(owner, OWNER);
+    assert_eq!(repo, REPO);
+    assert_eq!(version, Some(VERSION.to_string()));
 }
 
 #[test]
@@ -48,6 +53,7 @@ fn test_release_struct_creation() {
         tag_name: "v1.0.0".to_string(),
         name: Some("Version 1.0.0".to_string()),
         body: Some("Release notes".to_string()),
+
         assets: vec![Asset {
             id: 12345,
             name: "app-linux-x86_64.tar.gz".to_string(),
@@ -132,6 +138,7 @@ fn test_github_error_display() {
         status: 404,
         message: "Not Found".to_string(),
     };
+
     let msg = format!("{}", err);
     assert!(msg.contains("404"));
     assert!(msg.contains("Not Found"));
@@ -146,6 +153,7 @@ fn test_github_error_release_not_found() {
         repo: "repo".to_string(),
         version: "v1.0.0".to_string(),
     };
+
     let msg = format!("{}", err);
     assert!(msg.contains("user/repo@v1.0.0"));
 }
@@ -158,6 +166,7 @@ fn test_github_error_no_matching_asset() {
         platform: "linux-x86_64".to_string(),
         release: "v1.0.0".to_string(),
     };
+
     let msg = format!("{}", err);
     assert!(msg.contains("linux-x86_64"));
     assert!(msg.contains("v1.0.0"));

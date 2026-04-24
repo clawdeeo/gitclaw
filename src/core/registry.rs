@@ -7,8 +7,12 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
+use crate::core::channel::Channel;
 use crate::core::config::Config;
-use crate::core::constants::{APP_NAME_SHORT, RELEASE_TAG_LATEST};
+use crate::core::constants::{
+    APP_NAME_SHORT, COL_LIST_IDENTIFIER, COL_LIST_PACKAGE, COL_LIST_PATH, COL_LIST_PATH_MAX,
+    COL_LIST_PATH_TRUNCATE, COL_LIST_VERSION, DATE_PREFIX_LEN, DIR_BIN, RELEASE_TAG_LATEST,
+};
 use crate::core::util::registry_path_from;
 use crate::network::github::{parse_package, GithubClient};
 use crate::output;
@@ -26,7 +30,7 @@ pub struct InstalledPackage {
     #[serde(default)]
     pub identifier: String,
     #[serde(default)]
-    pub channel: Option<String>,
+    pub channel: Option<Channel>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -99,15 +103,23 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
 
             output::print_kv(
                 "Installed",
-                &pkg.installed_at[..10.min(pkg.installed_at.len())],
+                &pkg.installed_at[..DATE_PREFIX_LEN.min(pkg.installed_at.len())],
             );
         }
     } else {
         println!(
             "{}",
             format!(
-                "{:<25} {:<20} {:<15} {:<30} {}",
-                "Package", "Identifier", "Version", "Path", "Date"
+                "{:<width_pkg$} {:<width_id$} {:<width_ver$} {:<width_path$} {}",
+                "Package",
+                "Identifier",
+                "Version",
+                "Path",
+                "Date",
+                width_pkg = COL_LIST_PACKAGE,
+                width_id = COL_LIST_IDENTIFIER,
+                width_ver = COL_LIST_VERSION,
+                width_path = COL_LIST_PATH,
             )
             .bold()
         );
@@ -116,28 +128,34 @@ pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
         pkgs.sort_by_key(|p| &p.name);
 
         for pkg in pkgs {
-            let date = &pkg.installed_at[..10.min(pkg.installed_at.len())];
+            let date = &pkg.installed_at[..DATE_PREFIX_LEN.min(pkg.installed_at.len())];
 
-            let path_short = pkg
-                .binary_path
-                .display()
-                .to_string()
-                .replace(&dirs::home_dir().unwrap().display().to_string(), "~")
-                .replace("/packages/", "/p/");
+            let path_short = if let Some(home) = dirs::home_dir() {
+                pkg.binary_path
+                    .display()
+                    .to_string()
+                    .replace(&home.display().to_string(), "~")
+            } else {
+                pkg.binary_path.display().to_string()
+            };
 
-            let path_display = if path_short.len() > 28 {
-                format!("{}...", &path_short[..25])
+            let path_display = if path_short.len() > COL_LIST_PATH_MAX {
+                format!("{}...", &path_short[..COL_LIST_PATH_TRUNCATE])
             } else {
                 path_short
             };
 
             println!(
-                "{:<25} {:<20} {:<15} {:<30} {}",
+                "{:<width_pkg$} {:<width_id$} {:<width_ver$} {:<width_path$} {}",
                 pkg.name.dimmed(),
                 pkg.identifier.cyan(),
                 pkg.version,
                 path_display,
-                date
+                date,
+                width_pkg = COL_LIST_PACKAGE,
+                width_id = COL_LIST_IDENTIFIER,
+                width_ver = COL_LIST_VERSION,
+                width_path = COL_LIST_PATH,
             );
         }
     }
@@ -223,7 +241,10 @@ pub fn uninstall(package: &str, install_dir: &Path, config: &Config) -> Result<(
 
         match matches.len() {
             0 => anyhow::bail!("Package '{}' not installed.", package),
-            1 => matches.into_iter().next().unwrap(),
+            1 => matches
+                .into_iter()
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("Invariant: single match disappeared"))?,
             _ => anyhow::bail!(
                 "Multiple packages match '{}'. Use full name (owner/repo).",
                 package
@@ -238,7 +259,7 @@ pub fn uninstall(package: &str, install_dir: &Path, config: &Config) -> Result<(
     if pkg.install_dir.exists() {
         fs::remove_dir_all(&pkg.install_dir).context("Remove install dir")?;
     }
-    let link = install_dir.join("bin").join(&pkg.repo);
+    let link = install_dir.join(DIR_BIN).join(&pkg.repo);
     if link.exists() || link.is_symlink() {
         fs::remove_file(&link).context("Remove symlink")?;
     }

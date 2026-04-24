@@ -4,11 +4,10 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
+use crate::core::constants::LOCKFILE_NAME;
 use crate::core::registry::Registry;
 use crate::core::util::registry_path_from;
 use crate::output;
-
-const LOCKFILE_NAME: &str = "gitclaw.lock";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LockEntry {

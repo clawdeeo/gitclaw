@@ -9,6 +9,7 @@ pub mod extract;
 pub mod install;
 pub mod lockfile;
 pub mod registry;
+pub mod run;
 pub mod semver;
 pub mod updater;
 pub mod util;

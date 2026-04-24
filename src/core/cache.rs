@@ -5,11 +5,12 @@ use anyhow::{Context, Result};
 use sha2::{Digest, Sha256};
 
 use crate::core::config::Config;
+use crate::core::constants::DIR_CACHE;
 use crate::core::util;
 use crate::output;
 
 pub fn cache_dir(config: &Config) -> PathBuf {
-    config.install_dir.join("cache")
+    config.install_dir.join(DIR_CACHE)
 }
 
 pub fn cache_key(owner: &str, repo: &str, version: &str, filename: &str) -> String {
@@ -29,6 +30,7 @@ pub fn file_hash(path: &Path) -> Result<String> {
 
 pub fn get_cached(config: &Config, key: &str, expected_hash: Option<&str>) -> Option<PathBuf> {
     let path = cache_path(config, key);
+
     if !path.exists() {
         return None;
     }
@@ -53,6 +55,7 @@ pub fn store(config: &Config, key: &str, source: &Path) -> Result<PathBuf> {
 
 pub fn clean(config: &Config) -> Result<u64> {
     let dir = cache_dir(config);
+
     if !dir.exists() {
         return Ok(0);
     }
@@ -71,13 +74,16 @@ pub fn clean(config: &Config) -> Result<u64> {
 
 pub fn size(config: &Config) -> Result<u64> {
     let dir = cache_dir(config);
+
     if !dir.exists() {
         return Ok(0);
     }
 
     let mut total = 0u64;
+
     for entry in fs::read_dir(&dir)? {
         let entry = entry?;
+
         if entry.file_type()?.is_file() {
             total += entry.metadata()?.len();
         }
@@ -88,11 +94,13 @@ pub fn size(config: &Config) -> Result<u64> {
 
 pub fn handle_cache_clean(config: &Config) -> Result<()> {
     let removed = clean(config)?;
+
     if removed == 0 {
         output::print_info("Cache is already empty.");
     } else {
         output::print_success(&format!("Removed {} cached file(s).", removed));
     }
+
     Ok(())
 }
 

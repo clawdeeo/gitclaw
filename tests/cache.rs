@@ -1,3 +1,6 @@
+mod fixtures;
+
+use fixtures::{ASSET, OWNER, REPO, VERSION};
 use tempfile::TempDir;
 
 use gitclaw::cache;
@@ -14,7 +17,7 @@ fn make_config() -> (Config, TempDir) {
 
 #[test]
 fn test_cache_key_format() {
-    let key = cache::cache_key("BurntSushi", "ripgrep", "13.0.0", "ripgrep.tar.gz");
+    let key = cache::cache_key(OWNER, REPO, VERSION, "ripgrep.tar.gz");
     assert_eq!(key, "BurntSushi_ripgrep_13.0.0_ripgrep.tar.gz");
 }
 
@@ -202,33 +205,26 @@ fn test_size_with_files() {
 fn test_full_cache_roundtrip() {
     let (config, _dir) = make_config();
 
-    // Simulate download
     let source_dir = TempDir::new().unwrap();
-    let source = source_dir.path().join("ripgrep-13.0.0.tar.gz");
+    let source = source_dir.path().join(ASSET);
     std::fs::write(&source, b"ripgrep binary content").unwrap();
 
-    // Store in cache
-    let key = cache::cache_key("BurntSushi", "ripgrep", "13.0.0", "ripgrep-13.0.0.tar.gz");
+    let key = cache::cache_key(OWNER, REPO, VERSION, ASSET);
     let cached = cache::store(&config, &key, &source).unwrap();
     let hash = cache::file_hash(&cached).unwrap();
 
-    // Cache hit with matching hash
     let result = cache::get_cached(&config, &key, Some(&hash));
     assert!(result.is_some());
 
-    // Cache miss with wrong hash
     let result = cache::get_cached(&config, &key, Some("wrong_hash"));
     assert!(result.is_none());
 
-    // Cache hit without hash check
     let result = cache::get_cached(&config, &key, None);
     assert!(result.is_some());
 
-    // Verify size
     let size = cache::size(&config).unwrap();
     assert!(size > 0);
 
-    // Clean and verify
     let removed = cache::clean(&config).unwrap();
     assert_eq!(removed, 1);
     assert_eq!(cache::size(&config).unwrap(), 0);

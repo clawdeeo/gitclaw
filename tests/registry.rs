@@ -1,28 +1,32 @@
+mod fixtures;
+
+use fixtures::{OWNER, PACKAGE, REPO, VERSION};
 use std::path::PathBuf;
 
 #[test]
 fn test_installed_package_struct() {
     let pkg = gitclaw::registry::InstalledPackage {
-        name: "BurntSushi/ripgrep".to_string(),
-        owner: "BurntSushi".to_string(),
-        repo: "ripgrep".to_string(),
-        version: "13.0.0".to_string(),
+        name: PACKAGE.to_string(),
+        owner: OWNER.to_string(),
+        repo: REPO.to_string(),
+        version: VERSION.to_string(),
         installed_at: chrono::Utc::now().to_rfc3339(),
         binary_path: PathBuf::from("/home/user/.gitclaw/bin/rg"),
-        install_dir: PathBuf::from("/home/user/.gitclaw/packages/BurntSushi/ripgrep"),
-        asset_name: "ripgrep-13.0.0-x86_64-unknown-linux-musl.tar.gz".to_string(),
-        identifier: "ripgrep".to_string(),
+        install_dir: PathBuf::from(format!("/home/user/.gitclaw/packages/{}/{}", OWNER, REPO)),
+        asset_name: format!("{}-{}-x86_64-unknown-linux-musl.tar.gz", REPO, VERSION),
+        identifier: REPO.to_string(),
         channel: None,
     };
 
-    assert_eq!(pkg.name, "BurntSushi/ripgrep");
-    assert_eq!(pkg.owner, "BurntSushi");
-    assert_eq!(pkg.repo, "ripgrep");
-    assert_eq!(pkg.version, "13.0.0");
-    assert_eq!(pkg.identifier, "ripgrep");
+    assert_eq!(pkg.name, PACKAGE);
+    assert_eq!(pkg.owner, OWNER);
+    assert_eq!(pkg.repo, REPO);
+    assert_eq!(pkg.version, VERSION);
+    assert_eq!(pkg.identifier, REPO);
+
     assert_eq!(
         pkg.asset_name,
-        "ripgrep-13.0.0-x86_64-unknown-linux-musl.tar.gz"
+        format!("{}-{}-x86_64-unknown-linux-musl.tar.gz", REPO, VERSION)
     );
 }
 
