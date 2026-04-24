@@ -11,100 +11,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Install channel persisted in registry: `--channel` stored per package
-- `gitclaw update` respects stored channel when checking for newer releases
+- `update` respects stored channel when checking for newer releases
 - Optional `channel` field on `InstalledPackage` (backward compatible)
 - New tests in `tests/channel_persist.rs`
 
 ## [0.6.0] - 2026-04-23
 
 ### Added
-- Release channels: `gitclaw install user/repo --channel nightly|beta|stable`
-- `gitclaw search user/repo --channel <name>` filters releases by channel
+- Release channels: `install --channel nightly|beta|stable`
+- `search --channel <name>` filters releases by channel
 - Channel pattern overrides in `.gitclaw.toml` under `[channels]`
-- `gitclaw export` outputs installed packages as TOML to stdout
-- `gitclaw export -o deps.toml` writes to file
-- `gitclaw import deps.toml` installs all packages from a TOML file
+- `export` outputs installed packages as TOML to stdout
+- `export -o deps.toml` writes to file
+- `import deps.toml` installs all packages from a TOML file
 - Import skips already-installed packages unless `--force` is set
 - Export output is deterministic: sorted by owner then repo
-- New modules: `src/core/channel.rs`, `src/core/export.rs`
 
 ## [0.5.0] - 2026-04-23
 
 ### Added
 - Asset caching: downloaded archives cached to `~/.gitclaw/cache/`, reused on subsequent installs
-- `gitclaw cache clean` — remove all cached archives
-- `gitclaw cache size` — show total cache size on disk
-- `gitclaw list --outdated` — compare installed versions against latest GitHub releases
-- Local installs: `gitclaw install --local user/repo` installs to `./.gitclaw/`
-- `gitclaw uninstall --local` — uninstall from local project directory
-- `sha2` crate dependency for cache integrity verification
+- `cache clean` and `cache size` commands
+- `list --outdated` compares installed versions against latest GitHub releases
+- Local installs: `install --local user/repo` installs to `./.gitclaw/`
+- `uninstall --local` for local project directory
 
 ## [0.4.0] - 2026-04-23
 
 ### Added
-- Semver range support for install: `gitclaw install user/repo "^1.2.3"`
-- Lockfile: `gitclaw lock` generates `gitclaw.lock` from installed packages
-- Locked install: `gitclaw install --locked` reproduces exact versions from lockfile
-- Package aliases: `gitclaw alias add rg BurntSushi/ripgrep` then `gitclaw install rg`
-- `gitclaw alias list` and `gitclaw alias remove` commands
-- `semver` crate dependency for version constraint parsing
+- Semver range support: `install user/repo "^1.2.3"`
+- Lockfile: `lock` generates `gitclaw.lock`, `install --locked` reproduces exact versions
+- Package aliases: `alias add rg BurntSushi/ripgrep` then `install rg`
+- `alias list` and `alias remove` commands
 
 ## [0.3.2] - 2026-04-23
 
 ### Added
-- `.deb` archive extraction support with ar format parsing
-- `zstd` decompression support for `.tar.zst` archives
-- Support for both GNU (10-byte) and BSD (8-byte) ar header size fields
+- `.deb` archive extraction with ar format parsing
+- `zstd` decompression for `.tar.zst` archives
+- GNU and BSD ar header size field support
+- `gcw` short alias binary
+- 74 new integration tests
 
 ### Changed
-- `identifier` field on `InstalledPackage` — set to the repo name at install time
-- `uninstall` now accepts short name (repo or identifier) in addition to `owner/repo`
-- `list` shows an `Identifier` column (cyan) in both normal and verbose modes
-- 74 new integration tests across `tests/checksum.rs`, `tests/config.rs`, `tests/extract.rs`, `tests/github.rs`, `tests/platform.rs`, `tests/registry.rs`
-- `gcw` short alias binary
-- AGENTS.md and README.md simplified to essential content
-
-### Fixed
-- `gcw list` crash when registry TOML was written before `identifier` field existed — `#[serde(default)]` applied
-- Platform asset matching now correctly selects platform-specific assets
-- Added Rust target triple aliases for ripgrep and similar Rust projects
-- Symlinks in bin/ now use absolute paths
-- Success prefix changed from `[OK]` to `[EXEC]` (bold green)
-- Info prefix is now cyan
-- Removed all horizontal separator lines from output
-
-### Removed
-- `tests/unit/` folder dissolved — all integration tests now live directly under `tests/`
-- `assert_cmd` moved to `[dev-dependencies]`
-- Unused dependencies: `base64`, `base64ct`, `indexmap`, `url`, `time`
-
-## [0.3.1] - 2026-04-22
+- `identifier` field set to repo name at install time
+- `uninstall` accepts short name (repo or identifier) in addition to `owner/repo`
+- `list` shows an `Identifier` column
+- `#[serde(default)]` applied to `identifier` field for backward compatibility
 
 ### Fixed
 - Platform asset matching now correctly selects platform-specific assets
-- Added Rust target triple aliases for ripgrep and similar Rust projects
-- Symlinks in bin/ now use absolute paths
+- Rust target triple aliases added for ripgrep and similar projects
+- Symlinks in `bin/` now use absolute paths
 
 ## [0.3.0] - 2026-04-21
 
 ### Added
-- Self-update command (`gitclaw self-update`, `gitclaw self-update --check`)
+- Self-update command (`self-update`, `self-update --check`)
 - Checksum verification for downloaded assets (`--verify` flag)
-- Parallel install support (`gitclaw install pkg1 pkg2 pkg3`)
-
-### Changed
-- Install command now accepts multiple package arguments
+- Parallel install support (`install pkg1 pkg2 pkg3`)
 
 ## [0.2.0] - 2026-04-21
 
 ### Added
-- Configuration file support with multiple config sources (env, project-local, XDG, legacy)
+- Configuration file support with multiple config sources
 - `--dry-run` flag for install command
-- `completions` command for shell completions (bash, zsh, fish, powershell, elvish)
+- `completions` command for shell completions
 - Config options: `install_dir`, `show_progress`, `prefer_strip`, `verify_checksums`, `color`, `quiet`, `verbose`
-
-### Changed
-- Config values are now wired throughout the codebase
 
 ## [0.1.0] - 2026-04-21
 
@@ -114,7 +87,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Archive support: tar.gz, tar.bz2, tar.xz, zip
 - Automatic architecture detection (Linux x86_64, aarch64)
 - Package registry for tracking installed packages
-- List, update, and uninstall commands
-- Search command for browsing releases
+- List, update, uninstall, and search commands
 - Progress bars for downloads
 - GitHub Actions CI/CD
