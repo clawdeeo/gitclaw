@@ -8,7 +8,7 @@ Development guide for gitclaw contributors and agents.
 - Two binaries, one source: `gitclaw` and `gcw` both compile from `src/main.rs`
 - `src/lib.rs` re-exports all modules publicly; integration tests consume the crate as a library
 - Integration tests in `tests/` (flat, no subdirectories, one file per module)
-- No in-module unit tests, all tests live in `tests/`
+- Unit tests can stay in source files with `#[cfg(test)]`, integration tests go in `tests/`
 
 ## Source Modules
 
@@ -46,7 +46,7 @@ Development guide for gitclaw contributors and agents.
 - Blank line after multi-line blocks
 - `#[serde(default)]` on any new optional struct fields for backward compatibility
 - Imports sorted alphabetically within groups (stdlib / external / crate-internal), blank line between groups
-- All tests go in `tests/`, no `#[cfg(test)]` blocks in source files
+- Integration tests go in `tests/`, unit tests can stay in source files
 
 ## Spec-Driven Development
 

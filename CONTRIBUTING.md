@@ -19,8 +19,8 @@ cargo test
 
 ## Testing
 
-- New features require integration tests in `tests/<module>.rs`
-- All tests go in `tests/`, no `#[cfg(test)]` blocks in source files
+- Integration tests go in `tests/<module>.rs`
+- Unit tests can stay in source files with `#[cfg(test)]` modules
 
 ## Submitting Changes
 
