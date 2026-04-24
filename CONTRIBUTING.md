@@ -1,6 +1,6 @@
 # Contributing to gitclaw
 
-## Development Setup
+## Setup
 
 ```bash
 git clone https://github.com/clawdeeo/gitclaw.git
@@ -12,15 +12,15 @@ cargo test
 ## Code Style
 
 - No comments or docstrings in `.rs` files
-- Use `?` for error propagation; no `unwrap()` in production code
+- Use `?` for error propagation, no `unwrap()` in production code
 - Run `cargo fmt` before committing
 - All clippy warnings must be resolved: `cargo clippy -- -D warnings`
+- New `InstalledPackage` fields must use `#[serde(default)]` for registry compatibility
 
 ## Testing
 
 - New features require integration tests in `tests/<module>.rs`
-- All tests go in `tests/` — no `#[cfg(test)]` blocks in source files
-- New `InstalledPackage` fields must use `#[serde(default)]` for registry compatibility
+- All tests go in `tests/`, no `#[cfg(test)]` blocks in source files
 
 ## Submitting Changes
 
@@ -31,9 +31,9 @@ cargo test
    cargo clippy -- -D warnings
    cargo test
    ```
-3. Open a PR — squash merge into `main`
+3. Open a PR, squash merge into `main`
 
-## Commit Message Convention
+## Commit Messages
 
 ```
 feat: add short description
@@ -42,4 +42,4 @@ docs: update readme
 chore: bump dependency
 ```
 
-Lowercase, imperative, no period at end.
+Lowercase, imperative, no period.
