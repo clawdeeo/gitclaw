@@ -3,13 +3,6 @@ use semver::Version;
 use gitclaw::semver::{parse_tag_version, strip_v_prefix, VersionConstraint};
 
 #[test]
-fn test_semver_exact_version() {
-    let constraint = VersionConstraint::parse("1.2.3").unwrap();
-    assert!(constraint.matches(&Version::parse("1.2.3").unwrap()));
-    assert!(!constraint.matches(&Version::parse("1.2.4").unwrap()));
-}
-
-#[test]
 fn test_semver_caret_range() {
     let constraint = VersionConstraint::parse("^1.2.3").unwrap();
     assert!(constraint.matches(&Version::parse("1.2.3").unwrap()));

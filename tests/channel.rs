@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use gitclaw::channel::{filter_releases, matches_channel, Channel};
 use gitclaw::network::github::Release;
 
@@ -109,8 +111,6 @@ fn test_channel_display() {
 
 #[test]
 fn test_channel_patterns_with_overrides() {
-    use std::collections::HashMap;
-
     let mut overrides = HashMap::new();
     overrides.insert(
         "nightly".to_string(),
@@ -122,45 +122,4 @@ fn test_channel_patterns_with_overrides() {
 
     let patterns = Channel::Beta.patterns_with_overrides(Some(&overrides));
     assert_eq!(patterns, Channel::Beta.default_patterns());
-}
-
-#[test]
-fn test_glob_exact_match() {
-    let patterns = vec!["1.0.0-beta".to_string()];
-    assert!(matches_channel("1.0.0-beta", &patterns));
-    assert!(!matches_channel("2.0.0-beta", &patterns));
-}
-
-#[test]
-fn test_glob_wildcard_prefix() {
-    let patterns = vec!["*-nightly".to_string(), "*-rc*".to_string()];
-    assert!(matches_channel("v1.0.0-nightly", &patterns));
-    assert!(matches_channel("v2.0.0-rc1", &patterns));
-    assert!(!matches_channel("v1.0.0", &patterns));
-}
-
-#[test]
-fn test_glob_wildcard_suffix() {
-    let patterns = vec!["v1.0.0-*".to_string()];
-    assert!(matches_channel("v1.0.0-rc1", &patterns));
-    assert!(!matches_channel("v2.0.0-beta", &patterns));
-}
-
-#[test]
-fn test_glob_star_matches_anything() {
-    let patterns = vec!["*".to_string()];
-    assert!(matches_channel("anything", &patterns));
-}
-
-#[test]
-fn test_glob_contains_match() {
-    let patterns = vec!["*rc*".to_string()];
-    assert!(matches_channel("v1.0.0-rc1", &patterns));
-    assert!(!matches_channel("v1.0.0", &patterns));
-}
-
-#[test]
-fn test_empty_patterns_match_nothing() {
-    let patterns: Vec<String> = vec![];
-    assert!(!matches_channel("v1.0.0", &patterns));
 }

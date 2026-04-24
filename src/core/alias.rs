@@ -133,3 +133,78 @@ pub fn handle_alias_list(config: &Config) -> Result<()> {
     crate::output::print_info(&format!("{} alias(es) configured.", entries.len()));
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_config() -> (Config, tempfile::TempDir) {
+        let dir = tempfile::tempdir().unwrap();
+        let config = Config {
+            install_dir: dir.path().to_path_buf(),
+            ..Config::default()
+        };
+        (config, dir)
+    }
+
+    #[test]
+    fn test_alias_add() {
+        let (config, _dir) = make_config();
+        let mut aliases = AliasMap::default();
+        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
+        assert_eq!(aliases.resolve("rg"), Some("BurntSushi/ripgrep"));
+    }
+
+    #[test]
+    fn test_alias_add_slash_rejected() {
+        let (config, _dir) = make_config();
+        let mut aliases = AliasMap::default();
+        assert!(aliases
+            .add("owner/repo", "BurntSushi/ripgrep", &config)
+            .is_err());
+    }
+
+    #[test]
+    fn test_alias_remove() {
+        let (config, _dir) = make_config();
+        let mut aliases = AliasMap::default();
+        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
+        assert!(aliases.remove("rg"));
+        assert!(!aliases.remove("rg"));
+        assert_eq!(aliases.resolve("rg"), None);
+    }
+
+    #[test]
+    fn test_alias_resolve_missing() {
+        let aliases = AliasMap::default();
+        assert_eq!(aliases.resolve("nonexistent"), None);
+    }
+
+    #[test]
+    fn test_alias_list_sorted() {
+        let (config, _dir) = make_config();
+        let mut aliases = AliasMap::default();
+        aliases.add("fd", "sharkdp/fd", &config).unwrap();
+        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
+        aliases.add("bat", "sharkdp/bat", &config).unwrap();
+
+        let list = aliases.list();
+        assert_eq!(list[0].0.as_str(), "bat");
+        assert_eq!(list[1].0.as_str(), "fd");
+        assert_eq!(list[2].0.as_str(), "rg");
+    }
+
+    #[test]
+    fn test_alias_roundtrip() {
+        let (config, _dir) = make_config();
+
+        let mut aliases = AliasMap::default();
+        aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
+        aliases.add("fd", "sharkdp/fd", &config).unwrap();
+        aliases.save(&config).unwrap();
+
+        let loaded = AliasMap::load(&config).unwrap();
+        assert_eq!(loaded.resolve("rg"), Some("BurntSushi/ripgrep"));
+        assert_eq!(loaded.resolve("fd"), Some("sharkdp/fd"));
+    }
+}
