@@ -2,9 +2,10 @@
 
 [![CI](https://github.com/clawdeeo/gitclaw/actions/workflows/main.yml/badge.svg)](https://github.com/clawdeeo/gitclaw/actions/workflows/main.yml)
 
-Install software from GitHub releases.
-
+Install software from GitHub releases.  
 Also available as `gcw`.
+
+![GIF](assets/gcw.gif)
 
 ## Install
 
@@ -86,4 +87,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT -- Copyright (c) 2026 Francesco Sardone (Airscript)
+Licensed under MIT, Copyright (c) 2026 Francesco Sardone (Airscript)

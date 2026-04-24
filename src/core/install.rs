@@ -82,7 +82,7 @@ pub async fn handle_install(
     let bin_dir = bin_dir_from(&config.install_dir);
 
     if dry_run {
-        output::print_info(&format!("[DRY RUN] Would install {}.", key.cyan()));
+        output::print_info(&format!("With dry run, would install {}.", key.cyan()));
         output::print_kv("Release", &release.tag_name);
         output::print_kv("Asset", &asset.name);
         output::print_kv("Install dir", &pkg_install_dir.display().to_string());
@@ -104,6 +104,7 @@ pub async fn handle_install(
         if !config.output.quiet {
             output::print_info("Using cached archive.");
         }
+
         cached_path
     } else {
         let temp_dir = std::env::temp_dir().join(format!("{}{}-{}", TEMP_DIR_PREFIX, owner, repo));
@@ -120,8 +121,6 @@ pub async fn handle_install(
 
         cached_path
     };
-
-    println!();
 
     if verify || config.download.verify_checksums {
         if let Some((algo, checksum_url)) = find_checksum_file(&asset.name, &release.assets) {
@@ -149,7 +148,6 @@ pub async fn handle_install(
     fs::create_dir_all(&pkg_install_dir)?;
 
     if !config.output.quiet {
-        println!();
         output::print_info(&format!("Extracting {}.", asset.name));
     }
 
@@ -182,7 +180,7 @@ pub async fn handle_install(
     create_symlink(&binary_absolute, &repo, &bin_dir)?;
 
     if !config.output.quiet {
-        output::print_install_complete(&key, &binary.display().to_string());
+        output::print_install_complete(&key);
     }
 
     Ok(())
@@ -219,7 +217,6 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
     }
 
     let client = GithubClient::new(config.github_token.clone())?;
-
     let ch = installed.channel;
 
     let latest = match ch {
@@ -279,7 +276,6 @@ async fn update_all(config: &Config) -> Result<()> {
     }
 
     if !config.output.quiet {
-        println!();
         output::print_info(&format!("Done: {} updated, {} current.", updated, current));
     }
 
@@ -386,7 +382,6 @@ pub async fn handle_install_multiple(
     }
 
     if !config.output.quiet {
-        println!();
         output::print_info(&format!("Done: {} succeeded, {} failed.", success, failed));
     }
 
@@ -432,6 +427,7 @@ async fn find_matching_release(
     }
 
     let fallback = Version::new(0, 0, 0);
+
     matching.sort_by(|a, b| {
         let va = parse_tag_version(&a.tag_name).unwrap_or_else(|_| fallback.clone());
         let vb = parse_tag_version(&b.tag_name).unwrap_or_else(|_| fallback.clone());

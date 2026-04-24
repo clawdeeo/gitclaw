@@ -1,0 +1,5 @@
+[[package]]
+owner = "sharkdp"
+repo = "fd"
+version = "v10.4.2"
+asset = "fd-musl_10.4.2_amd64.deb"

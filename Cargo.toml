@@ -2,42 +2,40 @@
 name = "gitclaw"
 version = "0.7.0"
 edition = "2021"
-
 [lib]
 name = "gitclaw"
 path = "src/lib.rs"
 
 [dependencies]
-clap = { version = "=4.4.18", features = ["derive", "env"] }
-clap_complete = "=4.4.5"
-tokio = { version = "=1.32", features = ["rt-multi-thread", "macros"] }
-reqwest = { version = "=0.11.22", default-features = false, features = ["json", "rustls-tls", "stream"] }
-serde = { version = "=1.0.188", features = ["derive"] }
-serde_json = "=1.0.107"
-toml = "=0.8.0"
-tar = "=0.4.40"
-flate2 = "=1.0.28"
-bzip2 = "=0.4.4"
-xz2 = "=0.1.7"
-zstd = "=0.13.0"
-zip = { version = "=0.6.6", default-features = false, features = ["deflate"] }
-anyhow = "=1.0.75"
-thiserror = "=1.0.49"
-color-eyre = { version = "=0.6.3", default-features = false }
-indicatif = "=0.17.7"
-dirs = "=5.0.1"
-tempfile = "=3.8.0"
-chrono = { version = "=0.4.31", default-features = false, features = ["clock", "std"] }
-walkdir = "=2.4.0"
-futures = "=0.3.29"
-tracing = "=0.1.40"
-tracing-subscriber = { version = "=0.3.18", features = ["env-filter"] }
-semver = "=1.0.23"
-sha2 = "=0.10.8"
-md5 = "=0.7.0"
-colored = "=2.1.0"
-rand = "=0.8.5"
-
+clap = { version = "4.4", features = ["derive", "env"] }
+clap_complete = "4.4"
+tokio = { version = "1.32", features = ["rt-multi-thread", "macros"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls", "stream"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+tar = "0.4"
+flate2 = "1.0"
+bzip2 = "0.4"
+xz2 = "0.1"
+zstd = "0.13"
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
+anyhow = "1.0"
+thiserror = "1.0"
+color-eyre = { version = "0.6", default-features = false }
+indicatif = "0.17"
+dirs = "5.0"
+tempfile = "3.8"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+walkdir = "2.4"
+futures = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+semver = "1.0"
+sha2 = "0.10"
+md5 = "0.7"
+colored = "2.0"
+rand = "0.8"
 
 [dev-dependencies]
-assert_cmd = "2.0.12"
+assert_cmd = "2.0"

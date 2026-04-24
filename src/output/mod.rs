@@ -78,15 +78,13 @@ pub fn print_error(text: &str) {
 
 pub fn print_kv(key: &str, value: &str) {
     println!(
-        "  {} {}",
+        "=> {} {}",
         format!("{:width$}", key, width = KV_KEY_WIDTH).dimmed(),
         value
     );
 }
 
-pub fn print_install_complete(name: &str, binary_path: &str) {
+pub fn print_install_complete(name: &str) {
+    print_success(&format!("Installed {}.", name.green().bold()));
     println!();
-    print_success(&format!("Installed {}", name.green().bold()));
-    println!("  {} {}", "binary".dimmed(), binary_path.dimmed());
-    println!("  {} {}", "run   ".dimmed(), binary_path.to_string().cyan());
 }

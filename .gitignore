@@ -5,6 +5,5 @@ Cargo.lock
 *~
 .DS_Store
 
-# Specs: tracked in git, archived after merge
 .specs/*.md
 !.specs/TEMPLATE.md
