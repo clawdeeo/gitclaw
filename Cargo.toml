@@ -3,6 +3,10 @@ name = "gitclaw"
 version = "0.7.0"
 edition = "2021"
 
+[lib]
+name = "gitclaw"
+path = "src/lib.rs"
+
 [[bin]]
 name = "gitclaw"
 path = "src/main.rs"

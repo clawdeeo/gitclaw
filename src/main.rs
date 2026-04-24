@@ -4,21 +4,17 @@ use anyhow::bail;
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
 
-mod cli;
-mod core;
-mod network;
-mod output;
-
-use cli::{AliasAction, CacheAction, Cli, Commands};
-use core::config::Config;
-use core::constants::{APP_NAME, APP_NAME_SHORT, DIR_BIN};
-use core::registry::Registry;
-use core::util::registry_path_from;
+use gitclaw::banner;
+use gitclaw::cli::{AliasAction, CacheAction, Cli, Commands};
+use gitclaw::config::Config;
+use gitclaw::constants::{APP_NAME, APP_NAME_SHORT, DIR_BIN, GITCLAW_DIR};
+use gitclaw::registry::Registry;
+use gitclaw::util::registry_path_from;
 
 #[tokio::main]
 async fn main() {
     if let Err(e) = color_eyre::install() {
-        output::print_error(&format!("Failed to initialize color-eyre: {}.", e));
+        banner::print_error(&format!("Failed to initialize color-eyre: {}.", e));
         std::process::exit(1);
     }
 
@@ -34,7 +30,7 @@ async fn main() {
     let config = match Config::load() {
         Ok(cfg) => cfg,
         Err(e) => {
-            output::print_error(&format!("Failed to load config: {}.", e));
+            banner::print_error(&format!("Failed to load config: {}.", e));
             std::process::exit(1);
         }
     };
@@ -42,7 +38,7 @@ async fn main() {
     let config = apply_cli_overrides(config, &cli);
 
     if let Err(e) = run(cli, config).await {
-        output::print_error(&format!("{}", e));
+        banner::print_error(&format!("{}", e));
         std::process::exit(1);
     }
 }
@@ -51,6 +47,7 @@ fn apply_cli_overrides(mut config: Config, cli: &Cli) -> Config {
     if cli.token.is_some() {
         config.github_token = cli.token.clone();
     }
+
     config
 }
 
@@ -70,28 +67,34 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         | Commands::SelfUpdate { .. }
         | Commands::Run { .. }
         | Commands::Alias { .. } => {
-            output::print_version_line();
+            banner::print_version_line();
         }
     }
 
     match cli.command {
         Commands::Alias { action } => {
-            output::print_output_header();
+            banner::print_output_header();
+
             match action {
                 AliasAction::Add { alias, target } => {
-                    core::alias::handle_alias_add(&alias, &target, &config)?
+                    gitclaw::alias::handle_alias_add(&alias, &target, &config)?
                 }
-                AliasAction::Remove { alias } => core::alias::handle_alias_remove(&alias, &config)?,
-                AliasAction::List {} => core::alias::handle_alias_list(&config)?,
+                AliasAction::Remove { alias } => {
+                    gitclaw::alias::handle_alias_remove(&alias, &config)?
+                }
+                AliasAction::List {} => gitclaw::alias::handle_alias_list(&config)?,
             }
         }
+
         Commands::Cache { action } => {
-            output::print_output_header();
+            banner::print_output_header();
+
             match action {
-                CacheAction::Clean {} => core::cache::handle_cache_clean(&config)?,
-                CacheAction::Size {} => core::cache::handle_cache_size(&config)?,
+                CacheAction::Clean {} => gitclaw::cache::handle_cache_clean(&config)?,
+                CacheAction::Size {} => gitclaw::cache::handle_cache_size(&config)?,
             }
         }
+
         Commands::Install {
             packages,
             force,
@@ -101,74 +104,81 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             local,
             channel,
         } => {
-            output::print_output_header();
+            banner::print_output_header();
 
             let install_config = if local {
                 let mut cfg = config.clone();
-                cfg.install_dir = std::env::current_dir()?.join(".gitclaw");
+                cfg.install_dir = std::env::current_dir()?.join(GITCLAW_DIR);
                 cfg
             } else {
                 config.clone()
             };
 
-            let ch = match channel.as_deref() {
-                Some(c) => Some(c.parse::<core::channel::Channel>()?),
+            let channel = match channel.as_deref() {
+                Some(c) => Some(c.parse::<gitclaw::channel::Channel>()?),
                 None => None,
             };
 
             if locked {
-                core::lockfile::install_locked(&install_config).await?
+                gitclaw::lockfile::install_locked(&install_config).await?
             } else if packages.len() == 1 {
-                core::install::handle_install(
+                gitclaw::install::handle_install(
                     &packages[0],
                     force,
                     dry_run,
                     verify,
                     &install_config,
-                    ch,
+                    channel,
                 )
                 .await?
             } else {
-                core::install::handle_install_multiple(
+                gitclaw::install::handle_install_multiple(
                     &packages,
                     force,
                     dry_run,
                     verify,
                     &install_config,
-                    ch,
+                    channel,
                 )
                 .await?
             }
         }
 
         Commands::Lock { dir } => {
-            output::print_output_header();
+            banner::print_output_header();
             let project_dir = std::path::PathBuf::from(dir);
-            core::lockfile::generate_lockfile(&config.install_dir, &project_dir)?
+            gitclaw::lockfile::generate_lockfile(&config.install_dir, &project_dir)?
         }
+
         Commands::List { verbose, outdated } => {
-            output::print_output_header();
+            banner::print_output_header();
+
             if outdated {
-                core::registry::list_outdated(&config.install_dir, config.github_token.as_deref())
-                    .await?
+                gitclaw::registry::list_outdated(
+                    &config.install_dir,
+                    config.github_token.as_deref(),
+                )
+                .await?
             } else {
-                core::registry::list_installed(verbose, &config.install_dir)?
+                gitclaw::registry::list_installed(verbose, &config.install_dir)?
             }
         }
 
         Commands::Update { package } => {
-            output::print_output_header();
-            core::install::handle_update(package.as_deref(), &config).await?
+            banner::print_output_header();
+            gitclaw::install::handle_update(package.as_deref(), &config).await?
         }
 
         Commands::Uninstall { package, local } => {
-            output::print_output_header();
+            banner::print_output_header();
+
             let install_dir = if local {
-                std::env::current_dir()?.join(".gitclaw")
+                std::env::current_dir()?.join(GITCLAW_DIR)
             } else {
                 config.install_dir.clone()
             };
-            core::registry::uninstall(&package, &install_dir, &config)?
+
+            gitclaw::registry::uninstall(&package, &install_dir, &config)?
         }
 
         Commands::Search {
@@ -176,28 +186,31 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             limit,
             channel,
         } => {
-            output::print_output_header();
-            let ch = match channel.as_deref() {
-                Some(c) => Some(c.parse::<core::channel::Channel>()?),
+            banner::print_output_header();
+
+            let channel = match channel.as_deref() {
+                Some(c) => Some(c.parse::<gitclaw::channel::Channel>()?),
                 None => None,
             };
-            network::github::search_releases(&package, limit, &config, ch).await?
+
+            gitclaw::github::search_releases(&package, limit, &config, channel).await?
         }
 
         Commands::Export {
             output: output_path,
         } => {
-            output::print_output_header();
-            core::export::handle_export(&config, output_path.as_deref())?
+            banner::print_output_header();
+            gitclaw::export::handle_export(&config, output_path.as_deref())?
         }
 
         Commands::Import { file, force } => {
-            output::print_output_header();
-            core::export::handle_import(&config, &file, force).await?
+            banner::print_output_header();
+            gitclaw::export::handle_import(&config, &file, force).await?
         }
 
         Commands::Completions { shell } => {
-            output::print_output_header();
+            banner::print_output_header();
+
             let mut cmd = Cli::command();
             let name = cmd.get_name().to_string();
             generate(shell, &mut cmd, name.clone(), &mut std::io::stdout());
@@ -210,25 +223,26 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         }
 
         Commands::Platform {} => {
-            output::print_output_header();
-            let arch = network::platform::current_platform();
-            output::print_info(&format!("Detected platform: linux {}", arch));
-            output::print_info("Compiled for: Linux");
-            output::print_info(&format!("Architecture aliases: {:?}", arch.aliases()));
+            banner::print_output_header();
+
+            let arch = gitclaw::platform::current_platform();
+            banner::print_info(&format!("Detected platform: linux {}", arch));
+            banner::print_info("Compiled for: Linux");
+            banner::print_info(&format!("Architecture aliases: {:?}", arch.aliases()));
         }
 
         Commands::SelfUpdate { check } => {
-            output::print_output_header();
+            banner::print_output_header();
 
             if check {
-                core::updater::check_for_update(&config).await?
+                gitclaw::updater::check_for_update(&config).await?
             } else {
-                core::updater::perform_update(&config).await?
+                gitclaw::updater::perform_update(&config).await?
             }
         }
 
         Commands::Run { package, args } => {
-            output::print_output_header();
+            banner::print_output_header();
             run_package(&package, args, &config).await?
         }
     }
@@ -238,8 +252,8 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
 
 async fn run_package(package: &str, args: Vec<String>, config: &Config) -> anyhow::Result<()> {
     let resolved = if !package.contains('/') {
-        if let Some(alias_target) = crate::core::alias::AliasMap::load(config)?.resolve(package) {
-            output::print_info(&format!("Alias '{}' -> '{}'.", package, alias_target));
+        if let Some(alias_target) = gitclaw::alias::AliasMap::load(config)?.resolve(package) {
+            banner::print_info(&format!("Alias '{}' -> '{}'.", package, alias_target));
             alias_target.to_string()
         } else {
             package.to_string()

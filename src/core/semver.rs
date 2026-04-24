@@ -29,7 +29,7 @@ impl VersionConstraint {
             return Ok(VersionConstraint::Range(req));
         }
 
-        bail!("Cannot parse '{}' as a version or semver range.", trimmed);
+        bail!("Cannot parse '{}' as a version or semver range.", trimmed)
     }
 
     pub fn matches(&self, version: &Version) -> bool {

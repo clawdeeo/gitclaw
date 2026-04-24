@@ -8,6 +8,8 @@ use crate::core::registry::Registry;
 use crate::core::util::registry_path_from;
 use crate::output;
 
+const LOCKFILE_NAME: &str = "gitclaw.lock";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LockEntry {
     pub owner: String,
@@ -21,8 +23,6 @@ pub struct Lockfile {
     #[serde(rename = "package")]
     pub packages: Vec<LockEntry>,
 }
-
-const LOCKFILE_NAME: &str = "gitclaw.lock";
 
 impl Lockfile {
     pub fn from_registry(registry: &Registry) -> Self {
@@ -112,11 +112,11 @@ pub async fn install_locked(config: &crate::core::config::Config) -> Result<()> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
-    use crate::core::registry::{InstalledPackage, Registry};
-    use tempfile;
+    use crate::core::registry::InstalledPackage;
 
-    fn make_pkg(
+    fn make_installed_package(
         name: &str,
         owner: &str,
         repo: &str,
@@ -137,19 +137,17 @@ mod tests {
         }
     }
 
-    use std::path::PathBuf;
-
     #[test]
     fn test_lockfile_from_registry() {
         let mut reg = Registry::default();
-        reg.add(make_pkg(
+        reg.add(make_installed_package(
             "BurntSushi/ripgrep",
             "BurntSushi",
             "ripgrep",
             "v14.1.0",
             "ripgrep-14.tar.gz",
         ));
-        reg.add(make_pkg(
+        reg.add(make_installed_package(
             "sharkdp/fd",
             "sharkdp",
             "fd",

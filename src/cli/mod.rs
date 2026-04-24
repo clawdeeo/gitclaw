@@ -1,14 +1,14 @@
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
 
-use crate::core::constants::{APP_NAME, ENV_VAR_TOKEN};
+use crate::constants::{APP_NAME, ENV_VAR_TOKEN};
 
 #[derive(Parser)]
 #[command(
     name = APP_NAME,
     about = "Install software from GitHub releases.",
     version,
-    before_help = crate::output::BANNER
+    before_help = crate::banner::BANNER
 )]
 pub struct Cli {
     #[command(subcommand)]

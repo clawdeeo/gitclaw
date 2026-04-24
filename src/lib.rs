@@ -3,6 +3,7 @@ pub mod core;
 pub mod network;
 pub mod output;
 
+pub use cli::{AliasAction, CacheAction, Cli, Commands};
 pub use core::alias;
 pub use core::cache;
 pub use core::channel;

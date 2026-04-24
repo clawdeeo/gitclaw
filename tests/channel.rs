@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use gitclaw::channel::{filter_releases, matches_channel, Channel};
 use gitclaw::network::github::Release;
 
@@ -105,4 +107,19 @@ fn test_channel_display() {
     assert_eq!(Channel::Stable.to_string(), "stable");
     assert_eq!(Channel::Beta.to_string(), "beta");
     assert_eq!(Channel::Nightly.to_string(), "nightly");
+}
+
+#[test]
+fn test_channel_patterns_with_overrides() {
+    let mut overrides = HashMap::new();
+    overrides.insert(
+        "nightly".to_string(),
+        vec!["*-canary".to_string(), "*-edge".to_string()],
+    );
+
+    let patterns = Channel::Nightly.patterns_with_overrides(Some(&overrides));
+    assert_eq!(patterns, vec!["*-canary", "*-edge"]);
+
+    let patterns = Channel::Beta.patterns_with_overrides(Some(&overrides));
+    assert_eq!(patterns, Channel::Beta.default_patterns());
 }

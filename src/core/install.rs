@@ -9,7 +9,7 @@ use walkdir::WalkDir;
 
 use crate::core::checksum::{find_checksum_file, verify_file};
 use crate::core::config::Config;
-use crate::core::constants::{APP_NAME, TEMP_DIR_PREFIX};
+use crate::core::constants::{APP_NAME, RELEASE_TAG_LATEST, TEMP_DIR_PREFIX};
 use crate::core::extract::extract_archive;
 use crate::core::registry::{InstalledPackage, Registry};
 use crate::core::semver::{parse_tag_version, VersionConstraint};
@@ -87,7 +87,11 @@ pub async fn handle_install(
                 client.get_release(&owner, &repo, v).await?
             }
         }
-        (None, None) => client.get_release(&owner, &repo, "latest").await?,
+        (None, None) => {
+            client
+                .get_release(&owner, &repo, RELEASE_TAG_LATEST)
+                .await?
+        }
     };
 
     let asset = select_best_asset(&release)?;
@@ -130,7 +134,6 @@ pub async fn handle_install(
 
         let cached_path = crate::core::cache::store(config, &cache_key, &temp_path)?;
 
-        // clean up temp
         let _ = fs::remove_file(&temp_path);
 
         cached_path
@@ -246,7 +249,11 @@ async fn update_one(package: &str, config: &Config) -> Result<()> {
             }
             filtered.into_iter().next().unwrap()
         }
-        None => client.get_release(&owner, &repo, "latest").await?,
+        None => {
+            client
+                .get_release(&owner, &repo, RELEASE_TAG_LATEST)
+                .await?
+        }
     };
 
     if latest.tag_name == installed.version {

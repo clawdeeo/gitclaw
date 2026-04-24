@@ -7,20 +7,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::config::Config;
 
+const ALIASES_FILE: &str = "aliases.toml";
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AliasMap {
     #[serde(flatten)]
     pub aliases: HashMap<String, String>,
 }
 
-const ALIASES_FILE: &str = "aliases.toml";
-
 impl AliasMap {
     pub fn load(config: &Config) -> Result<Self> {
         let path = config.install_dir.join(ALIASES_FILE);
+
         if !path.exists() {
             return Ok(Self::default());
         }
+
         let content = fs::read_to_string(&path).with_context(|| "Failed to read aliases file")?;
         toml::from_str(&content).with_context(|| "Failed to parse aliases file")
     }
@@ -60,6 +62,7 @@ impl AliasMap {
 
     pub fn check_clash(&self, name: &str, config: &Config) -> Option<String> {
         let registry_path = crate::core::util::registry_path_from(&config.install_dir);
+
         if let Ok(reg) = crate::core::registry::Registry::load_from(&registry_path) {
             for pkg in reg.packages.values() {
                 if pkg.repo == name || pkg.identifier == name {
@@ -67,6 +70,7 @@ impl AliasMap {
                 }
             }
         }
+
         None
     }
 
@@ -99,9 +103,11 @@ pub fn handle_alias_add(alias: &str, target: &str, config: &Config) -> Result<()
 
 pub fn handle_alias_remove(alias: &str, config: &Config) -> Result<()> {
     let mut aliases = AliasMap::load(config)?;
+
     if !aliases.remove(alias) {
         bail!("Alias '{}' not found.", alias);
     }
+
     aliases.save(config)?;
     crate::output::print_success(&format!("Alias '{}' removed.", alias));
     Ok(())
@@ -132,13 +138,18 @@ pub fn handle_alias_list(config: &Config) -> Result<()> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_alias_add() {
+    fn make_config() -> (Config, tempfile::TempDir) {
         let dir = tempfile::tempdir().unwrap();
         let config = Config {
             install_dir: dir.path().to_path_buf(),
             ..Config::default()
         };
+        (config, dir)
+    }
+
+    #[test]
+    fn test_alias_add() {
+        let (config, _dir) = make_config();
         let mut aliases = AliasMap::default();
         aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
         assert_eq!(aliases.resolve("rg"), Some("BurntSushi/ripgrep"));
@@ -146,11 +157,7 @@ mod tests {
 
     #[test]
     fn test_alias_add_slash_rejected() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
+        let (config, _dir) = make_config();
         let mut aliases = AliasMap::default();
         assert!(aliases
             .add("owner/repo", "BurntSushi/ripgrep", &config)
@@ -159,11 +166,7 @@ mod tests {
 
     #[test]
     fn test_alias_remove() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
+        let (config, _dir) = make_config();
         let mut aliases = AliasMap::default();
         aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
         assert!(aliases.remove("rg"));
@@ -179,11 +182,7 @@ mod tests {
 
     #[test]
     fn test_alias_list_sorted() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
+        let (config, _dir) = make_config();
         let mut aliases = AliasMap::default();
         aliases.add("fd", "sharkdp/fd", &config).unwrap();
         aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();
@@ -197,11 +196,7 @@ mod tests {
 
     #[test]
     fn test_alias_roundtrip() {
-        let dir = tempfile::tempdir().unwrap();
-        let config = Config {
-            install_dir: dir.path().to_path_buf(),
-            ..Config::default()
-        };
+        let (config, _dir) = make_config();
 
         let mut aliases = AliasMap::default();
         aliases.add("rg", "BurntSushi/ripgrep", &config).unwrap();

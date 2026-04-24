@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -37,10 +35,6 @@ pub fn packages_dir() -> Result<PathBuf> {
     Ok(gitclaw_dir()?.join(DIR_PACKAGES))
 }
 
-pub fn packages_dir_from(base: &Path) -> PathBuf {
-    base.join(DIR_PACKAGES)
-}
-
 pub fn registry_path() -> Result<PathBuf> {
     Ok(gitclaw_dir()?.join(REGISTRY_FILE))
 }
@@ -51,13 +45,6 @@ pub fn registry_path_from(base: &Path) -> PathBuf {
 
 pub fn config_path() -> Result<PathBuf> {
     Ok(gitclaw_dir()?.join(CONFIG_FILE))
-}
-
-pub fn ensure_dirs() -> Result<()> {
-    std::fs::create_dir_all(bin_dir()?)?;
-    std::fs::create_dir_all(downloads_dir()?)?;
-    std::fs::create_dir_all(packages_dir()?)?;
-    Ok(())
 }
 
 pub fn is_in_path(binary: &str) -> bool {
@@ -71,10 +58,12 @@ pub fn is_in_path(binary: &str) -> bool {
 
 pub fn format_bytes(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
+
     if bytes == 0 {
         return "0 B".to_string();
     }
-    let exp = (bytes as f64).log(1024.0).min(UNITS.len() as f64 - 1.0) as usize;
-    let value = bytes as f64 / 1024f64.powi(exp as i32);
-    format!("{:.1} {}", value, UNITS[exp])
+
+    let exponent = (bytes as f64).log(1024.0).min(UNITS.len() as f64 - 1.0) as usize;
+    let value = bytes as f64 / 1024f64.powi(exponent as i32);
+    format!("{:.1} {}", value, UNITS[exponent])
 }

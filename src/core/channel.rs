@@ -58,6 +58,7 @@ impl Channel {
                 return patterns.clone();
             }
         }
+
         self.default_patterns()
     }
 }
@@ -77,7 +78,6 @@ pub fn matches_channel(tag: &str, patterns: &[String]) -> bool {
         }
     }
 
-    // If all patterns are exclusions, tag passes unless excluded
     let all_exclusions = patterns.iter().all(|p| p.starts_with('!'));
     if all_exclusions {
         return true;
@@ -91,10 +91,10 @@ fn glob_match(text: &str, pattern: &str) -> bool {
         return true;
     }
 
-    let starts_with = pattern.starts_with('*');
-    let ends_with = pattern.ends_with('*');
+    let starts_with_wildcard = pattern.starts_with('*');
+    let ends_with_wildcard = pattern.ends_with('*');
 
-    match (starts_with, ends_with) {
+    match (starts_with_wildcard, ends_with_wildcard) {
         (true, true) => {
             let inner = &pattern[1..pattern.len() - 1];
             text.contains(inner)

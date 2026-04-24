@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::core::config::Config;
-use crate::core::constants::APP_NAME_SHORT;
+use crate::core::constants::{APP_NAME_SHORT, RELEASE_TAG_LATEST};
 use crate::core::util::registry_path_from;
 use crate::network::github::{parse_package, GithubClient};
 use crate::output;
@@ -38,20 +38,6 @@ pub struct Registry {
 }
 
 impl Registry {
-    #[allow(dead_code)]
-    fn default_path() -> Result<PathBuf> {
-        Ok(dirs::home_dir()
-            .ok_or_else(|| anyhow!("No home directory"))?
-            .join(".gitclaw")
-            .join("registry.toml"))
-    }
-
-    #[allow(dead_code)]
-    pub fn load() -> Result<Self> {
-        let p = Self::default_path()?;
-        Self::load_from(&p)
-    }
-
     pub fn load_from(path: &PathBuf) -> Result<Self> {
         if !path.exists() {
             return Ok(Self {
@@ -86,18 +72,6 @@ impl Registry {
     pub fn remove(&mut self, name: &str) -> Option<InstalledPackage> {
         self.packages.remove(name)
     }
-}
-
-#[allow(dead_code)]
-pub fn gitclaw_home() -> Result<PathBuf> {
-    Ok(dirs::home_dir()
-        .ok_or_else(|| anyhow!("No home directory"))?
-        .join(".gitclaw"))
-}
-
-#[allow(dead_code)]
-pub fn bin_dir() -> Result<PathBuf> {
-    Ok(gitclaw_home()?.join("bin"))
 }
 
 pub fn list_installed(verbose: bool, install_dir: &Path) -> Result<()> {
@@ -186,7 +160,10 @@ pub async fn list_outdated(install_dir: &Path, token: Option<&str>) -> Result<()
     let mut outdated = Vec::new();
 
     for pkg in reg.packages.values() {
-        let latest = match client.get_release(&pkg.owner, &pkg.repo, "latest").await {
+        let latest = match client
+            .get_release(&pkg.owner, &pkg.repo, RELEASE_TAG_LATEST)
+            .await
+        {
             Ok(r) => r.tag_name,
             Err(_) => continue,
         };

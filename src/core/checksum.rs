@@ -12,14 +12,6 @@ pub enum ChecksumAlgorithm {
     Md5,
 }
 
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub struct ChecksumFile {
-    pub algorithm: ChecksumAlgorithm,
-    pub filename: String,
-    pub expected_hash: String,
-}
-
 pub fn is_checksum_file(filename: &str) -> Option<ChecksumAlgorithm> {
     let lower = filename.to_lowercase();
     if lower.ends_with(".sha256") || lower.contains(".sha256.") {
