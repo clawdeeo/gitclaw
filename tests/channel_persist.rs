@@ -1,3 +1,6 @@
+mod fixtures;
+
+use fixtures::{FD_OWNER, FD_REPO, OWNER, REPO};
 use std::path::PathBuf;
 
 use gitclaw::core::channel::Channel;
@@ -52,17 +55,17 @@ fn test_registry_save_load_with_channel() {
     let mut reg = Registry::load_from(&reg_path).unwrap();
 
     reg.add(make_pkg_with_channel(
-        "BurntSushi/ripgrep",
-        "BurntSushi",
-        "ripgrep",
+        &format!("{}/{}", OWNER, REPO),
+        OWNER,
+        REPO,
         "14.0.0-nightly",
         Some(Channel::Nightly),
     ));
 
     reg.add(make_pkg_with_channel(
-        "sharkdp/fd",
-        "sharkdp",
-        "fd",
+        &format!("{}/{}", FD_OWNER, FD_REPO),
+        FD_OWNER,
+        FD_REPO,
         "8.7.0",
         None,
     ));
@@ -70,10 +73,10 @@ fn test_registry_save_load_with_channel() {
     reg.save().unwrap();
 
     let loaded = Registry::load_from(&reg_path).unwrap();
-    let rg = loaded.packages.get("BurntSushi/ripgrep").unwrap();
+    let rg = loaded.packages.get(&format!("{}/{}", OWNER, REPO)).unwrap();
     assert_eq!(rg.channel, Some(Channel::Nightly));
 
-    let fd = loaded.packages.get("sharkdp/fd").unwrap();
+    let fd = loaded.packages.get(&format!("{}/{}", FD_OWNER, FD_REPO)).unwrap();
     assert_eq!(fd.channel, None);
 }
 

@@ -4,6 +4,18 @@ use std::path::Path;
 
 use thiserror::Error;
 
+use crate::core::constants::{
+    DEB_DATA_TAR, DEB_DATA_TAR_BZ2, DEB_DATA_TAR_GZ, DEB_DATA_TAR_XZ, DEB_DATA_TAR_ZST,
+    DIR_EXTRACTED, EXT_BIN, EXT_DEB, EXT_TAR, EXT_TAR_BZ2, EXT_TAR_GZ, EXT_TAR_XZ, EXT_TAR_ZST,
+    EXT_TBZ2, EXT_TGZ, EXT_TZST, EXT_TXZ, EXT_ZIP,
+};
+
+const AR_HEADER_SIZE: usize = 60;
+const AR_FILENAME_END: usize = 16;
+const AR_FILESIZE_START: usize = 48;
+const AR_FILESIZE_END: usize = 58;
+const AR_FILESIZE_END_SHORT: usize = 56;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArchiveType {
     TarGz,
@@ -40,21 +52,21 @@ pub fn detect_archive_type(file_path: &Path) -> Result<ArchiveType> {
 
     let lower = filename.to_lowercase();
 
-    if lower.ends_with(".tar.gz") || lower.ends_with(".tgz") {
+    if lower.ends_with(EXT_TAR_GZ) || lower.ends_with(EXT_TGZ) {
         Ok(ArchiveType::TarGz)
-    } else if lower.ends_with(".zip") {
+    } else if lower.ends_with(EXT_ZIP) {
         Ok(ArchiveType::Zip)
-    } else if lower.ends_with(".tar.bz2") || lower.ends_with(".tbz2") {
+    } else if lower.ends_with(EXT_TAR_BZ2) || lower.ends_with(EXT_TBZ2) {
         Ok(ArchiveType::TarBz2)
-    } else if lower.ends_with(".tar.xz") || lower.ends_with(".txz") {
+    } else if lower.ends_with(EXT_TAR_XZ) || lower.ends_with(EXT_TXZ) {
         Ok(ArchiveType::TarXz)
-    } else if lower.ends_with(".tar.zst") || lower.ends_with(".tzst") {
+    } else if lower.ends_with(EXT_TAR_ZST) || lower.ends_with(EXT_TZST) {
         Ok(ArchiveType::TarZst)
-    } else if lower.ends_with(".tar") {
+    } else if lower.ends_with(EXT_TAR) {
         Ok(ArchiveType::TarGz)
-    } else if lower.ends_with(".deb") {
+    } else if lower.ends_with(EXT_DEB) {
         Ok(ArchiveType::Deb)
-    } else if lower.ends_with(".bin") || !lower.contains('.') {
+    } else if lower.ends_with(EXT_BIN) || !lower.contains('.') {
         Ok(ArchiveType::PlainBinary)
     } else {
         Err(ExtractionError::UnknownArchiveType(filename.to_string()))
@@ -179,11 +191,11 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<(Vec<u8>, String)> {
 
     let mut offset = AR_MAGIC.len();
 
-    while offset + 60 <= deb_content.len() {
-        let header = &deb_content[offset..offset + 60];
-        offset += 60;
+    while offset + AR_HEADER_SIZE <= deb_content.len() {
+        let header = &deb_content[offset..offset + AR_HEADER_SIZE];
+        offset += AR_HEADER_SIZE;
 
-        let name_field = &header[0..16];
+        let name_field = &header[0..AR_FILENAME_END];
 
         let name_end = name_field
             .iter()
@@ -201,7 +213,7 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<(Vec<u8>, String)> {
             })?
             .to_string();
 
-        let size_field = std::str::from_utf8(&header[48..58])
+        let size_field = std::str::from_utf8(&header[AR_FILESIZE_START..AR_FILESIZE_END])
             .map_err(|_| {
                 ExtractionError::UnsupportedFormat(
                     "Invalid UTF-8 in .deb header size field".to_string(),
@@ -212,7 +224,7 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<(Vec<u8>, String)> {
         let size: usize = size_field
             .parse()
             .or_else(|_| {
-                std::str::from_utf8(&header[48..56])
+                std::str::from_utf8(&header[AR_FILESIZE_START..AR_FILESIZE_END_SHORT])
                     .map_err(|_| {
                         ExtractionError::UnsupportedFormat(
                             "Invalid UTF-8 in .deb size field fallback".to_string(),
@@ -230,11 +242,11 @@ fn extract_data_tar_from_deb(deb_content: &[u8]) -> Result<(Vec<u8>, String)> {
             continue;
         }
 
-        if name == "data.tar.gz"
-            || name == "data.tar.xz"
-            || name == "data.tar.bz2"
-            || name == "data.tar.zst"
-            || name == "data.tar"
+        if name == DEB_DATA_TAR_GZ
+            || name == DEB_DATA_TAR_XZ
+            || name == DEB_DATA_TAR_BZ2
+            || name == DEB_DATA_TAR_ZST
+            || name == DEB_DATA_TAR
         {
             let data = deb_content[offset..offset + size].to_vec();
             return Ok((data, name));
@@ -256,13 +268,13 @@ fn extract_tar_auto(tar_path: &Path, dest_dir: &Path) -> Result<()> {
     let ext = tar_path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let full_name = tar_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-    if full_name.ends_with(".tar.gz") || ext == "gz" {
+    if full_name.ends_with(EXT_TAR_GZ) || ext == "gz" {
         extract_tar_gz(tar_path, dest_dir)
-    } else if full_name.ends_with(".tar.xz") || ext == "xz" {
+    } else if full_name.ends_with(EXT_TAR_XZ) || ext == "xz" {
         extract_tar_xz(tar_path, dest_dir)
-    } else if full_name.ends_with(".tar.bz2") || ext == "bz2" {
+    } else if full_name.ends_with(EXT_TAR_BZ2) || ext == "bz2" {
         extract_tar_bz2(tar_path, dest_dir)
-    } else if full_name.ends_with(".tar.zst") || ext == "zst" {
+    } else if full_name.ends_with(EXT_TAR_ZST) || ext == "zst" {
         extract_tar_zst(tar_path, dest_dir)
     } else {
         let file = fs::File::open(tar_path)?;
@@ -293,7 +305,7 @@ pub fn extract_archive(archive_path: &Path, dest_dir: &Path, prefer_strip: bool)
         let name = archive_path
             .file_stem()
             .and_then(|n| n.to_str())
-            .unwrap_or("extracted");
+            .unwrap_or(DIR_EXTRACTED);
 
         let d = dest_dir.join(name);
         fs::create_dir_all(&d)?;

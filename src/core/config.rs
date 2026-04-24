@@ -6,7 +6,8 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::core::constants::{
-    CONFIG_FILE, ENV_VAR_CONFIG, GITCLAW_DIR, LOCAL_CONFIG_FILE, XDG_CONFIG_SUBDIR,
+    CONFIG_FILE, ENV_VAR_CONFIG, GITCLAW_DIR, LEGACY_HOME_CONFIG_FILE, LOCAL_CONFIG_FILE,
+    XDG_CONFIG_SUBDIR,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -158,7 +159,7 @@ impl Config {
 
     pub fn load_from_legacy() -> Result<Option<Self>> {
         if let Some(home) = dirs::home_dir() {
-            let path = home.join(".gitclaw.toml");
+            let path = home.join(LEGACY_HOME_CONFIG_FILE);
 
             if path.exists() {
                 let content =

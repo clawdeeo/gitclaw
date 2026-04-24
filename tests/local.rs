@@ -1,3 +1,6 @@
+mod fixtures;
+
+use fixtures::{BAT_REPO, BAT_VERSION, FD_OWNER};
 use tempfile::TempDir;
 
 use gitclaw::config::Config;
@@ -8,6 +11,7 @@ use gitclaw::util;
 fn test_local_install_dir_structure() {
     let dir = TempDir::new().unwrap();
     let local_dir = dir.path().join(".gitclaw");
+
     let config = Config {
         install_dir: local_dir.clone(),
         ..Config::default()
@@ -23,6 +27,7 @@ fn test_local_install_dir_structure() {
 fn test_local_registry_path() {
     let dir = TempDir::new().unwrap();
     let local_dir = dir.path().join(".gitclaw");
+
     let config = Config {
         install_dir: local_dir.clone(),
         ..Config::default()
@@ -36,6 +41,7 @@ fn test_local_registry_path() {
 #[test]
 fn test_local_registry_isolation() {
     let local_dir = TempDir::new().unwrap();
+
     let local_config = Config {
         install_dir: local_dir.path().join(".gitclaw"),
         ..Config::default()
@@ -43,12 +49,13 @@ fn test_local_registry_isolation() {
 
     let local_reg_path = util::registry_path_from(&local_config.install_dir);
     let global_dir = TempDir::new().unwrap();
+
     let global_config = Config {
         install_dir: global_dir.path().to_path_buf(),
         ..Config::default()
     };
-    let global_reg_path = util::registry_path_from(&global_config.install_dir);
 
+    let global_reg_path = util::registry_path_from(&global_config.install_dir);
     assert_ne!(local_reg_path, global_reg_path);
 }
 
@@ -63,24 +70,25 @@ fn test_local_registry_load_save() {
 
     let reg_path = util::registry_path_from(&config.install_dir);
     std::fs::create_dir_all(reg_path.parent().unwrap()).unwrap();
-
     let mut reg = Registry::load_from(&reg_path).unwrap();
+
     reg.add(gitclaw::registry::InstalledPackage {
-        name: "sharkdp/bat".to_string(),
-        owner: "sharkdp".to_string(),
-        repo: "bat".to_string(),
-        version: "0.24.0".to_string(),
+        name: format!("{}/{}", FD_OWNER, BAT_REPO),
+        owner: FD_OWNER.to_string(),
+        repo: BAT_REPO.to_string(),
+        version: BAT_VERSION.to_string(),
         installed_at: chrono::Utc::now().to_rfc3339(),
-        binary_path: local_dir.join("bin").join("bat"),
-        install_dir: local_dir.join("packages").join("sharkdp").join("bat"),
-        asset_name: "bat-v0.24.0-x86_64-linux.tar.gz".to_string(),
-        identifier: "bat".to_string(),
+        binary_path: local_dir.join("bin").join(BAT_REPO),
+        install_dir: local_dir.join("packages").join(FD_OWNER).join(BAT_REPO),
+        asset_name: format!("{}-v{}-x86_64-linux.tar.gz", BAT_REPO, BAT_VERSION),
+        identifier: BAT_REPO.to_string(),
         channel: None,
     });
+
     reg.save().unwrap();
 
     let loaded = Registry::load_from(&reg_path).unwrap();
-    assert!(loaded.is_installed("sharkdp/bat"));
+    assert!(loaded.is_installed(&format!("{}/{}", FD_OWNER, BAT_REPO)));
     assert_eq!(loaded.packages.len(), 1);
 }
 
@@ -88,6 +96,7 @@ fn test_local_registry_load_save() {
 fn test_local_cache_dir_isolation() {
     let dir = TempDir::new().unwrap();
     let local_dir = dir.path().join(".gitclaw");
+
     let config = Config {
         install_dir: local_dir.clone(),
         ..Config::default()

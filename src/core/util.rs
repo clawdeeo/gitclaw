@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 use crate::core::constants::{
     CONFIG_FILE, DIR_BIN, DIR_CACHE, DIR_DOWNLOADS, DIR_PACKAGES, EXEC_PERMISSION_BITS,
-    GITCLAW_DIR, REGISTRY_FILE,
+    GITCLAW_DIR, REGISTRY_FILE, WALK_MAX_DEPTH,
 };
 
 pub fn home_dir() -> Result<PathBuf> {
@@ -74,8 +74,9 @@ pub fn package_key(owner: &str, repo: &str) -> String {
 }
 
 pub fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
-    for entry in WalkDir::new(dir).max_depth(3) {
+    for entry in WalkDir::new(dir).max_depth(WALK_MAX_DEPTH) {
         let entry = entry?;
+
         if !entry.file_type().is_file() {
             continue;
         }
@@ -98,7 +99,7 @@ pub fn find_binary(dir: &Path, repo_name: &str) -> Result<PathBuf> {
         }
     }
 
-    for entry in WalkDir::new(dir).max_depth(3) {
+    for entry in WalkDir::new(dir).max_depth(WALK_MAX_DEPTH) {
         let entry = entry?;
         if !entry.file_type().is_file() {
             continue;

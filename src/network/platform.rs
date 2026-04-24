@@ -1,8 +1,12 @@
 use thiserror::Error;
 
 use crate::core::constants::{
-    SCORE_CHECKSUM_PENALTY, SCORE_KNOWN_EXTENSION, SCORE_LINUX_PARTIAL, SCORE_PLATFORM_MATCH,
-    SCORE_SHELL_SCRIPT,
+    ARCH_AARCH64, ARCH_AMD64, ARCH_ARM64, ARCH_X64, ARCH_X86_64, EXT_APPIMAGE, EXT_DEB, EXT_RPM,
+    EXT_SH, EXT_TAR, EXT_TAR_BZ2, EXT_TAR_GZ, EXT_TAR_XZ, EXT_TGZ, EXT_ZIP,
+    PLATFORM_AARCH64_GNU, PLATFORM_AARCH64_MUSL, PLATFORM_LINUX, PLATFORM_LINUX_AARCH64,
+    PLATFORM_LINUX_AMD64, PLATFORM_LINUX_ARM64, PLATFORM_LINUX_X64, PLATFORM_LINUX_X86_64,
+    PLATFORM_X86_64_GNU, PLATFORM_X86_64_MUSL, SCORE_CHECKSUM_PENALTY, SCORE_KNOWN_EXTENSION,
+    SCORE_LINUX_PARTIAL, SCORE_PLATFORM_MATCH, SCORE_SHELL_SCRIPT,
 };
 
 #[derive(Error, Debug)]
@@ -20,8 +24,8 @@ pub enum Arch {
 impl std::fmt::Display for Arch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Arch::X86_64 => write!(f, "x86_64"),
-            Arch::Aarch64 => write!(f, "aarch64"),
+            Arch::X86_64 => write!(f, "{}", ARCH_X86_64),
+            Arch::Aarch64 => write!(f, "{}", ARCH_AARCH64),
         }
     }
 }
@@ -30,22 +34,22 @@ impl Arch {
     pub fn aliases(&self) -> &[&'static str] {
         match self {
             Arch::X86_64 => &[
-                "linux-x86_64",
-                "linux-amd64",
-                "linux-x64",
-                "x86_64-unknown-linux-gnu",
-                "x86_64-unknown-linux-musl",
-                "x86_64",
-                "amd64",
-                "x64",
+                PLATFORM_LINUX_X86_64,
+                PLATFORM_LINUX_AMD64,
+                PLATFORM_LINUX_X64,
+                PLATFORM_X86_64_GNU,
+                PLATFORM_X86_64_MUSL,
+                ARCH_X86_64,
+                ARCH_AMD64,
+                ARCH_X64,
             ],
             Arch::Aarch64 => &[
-                "linux-aarch64",
-                "linux-arm64",
-                "aarch64-unknown-linux-gnu",
-                "aarch64-unknown-linux-musl",
-                "aarch64",
-                "arm64",
+                PLATFORM_LINUX_AARCH64,
+                PLATFORM_LINUX_ARM64,
+                PLATFORM_AARCH64_GNU,
+                PLATFORM_AARCH64_MUSL,
+                ARCH_AARCH64,
+                ARCH_ARM64,
             ],
         }
     }
@@ -53,8 +57,8 @@ impl Arch {
 
 pub fn detect_arch() -> Result<Arch, PlatformError> {
     match std::env::consts::ARCH {
-        "x86_64" => Ok(Arch::X86_64),
-        "aarch64" | "arm64" => Ok(Arch::Aarch64),
+        ARCH_X86_64 => Ok(Arch::X86_64),
+        ARCH_AARCH64 | ARCH_ARM64 => Ok(Arch::Aarch64),
         other => Err(PlatformError::UnsupportedArch(other.to_string())),
     }
 }
@@ -74,25 +78,25 @@ pub fn score_asset(name: &str, arch: Arch) -> i32 {
         }
     }
 
-    if score == 0 && lower.contains("linux") {
+    if score == 0 && lower.contains(PLATFORM_LINUX) {
         score += SCORE_LINUX_PARTIAL;
     }
 
     if score >= SCORE_LINUX_PARTIAL {
-        if lower.ends_with(".tar.gz")
-            || lower.ends_with(".tgz")
-            || lower.ends_with(".tar.xz")
-            || lower.ends_with(".tar.bz2")
-            || lower.ends_with(".zip")
-            || lower.ends_with(".appimage")
-            || lower.ends_with(".deb")
-            || lower.ends_with(".rpm")
-            || lower.ends_with(".tar")
+        if lower.ends_with(EXT_TAR_GZ)
+            || lower.ends_with(EXT_TGZ)
+            || lower.ends_with(EXT_TAR_XZ)
+            || lower.ends_with(EXT_TAR_BZ2)
+            || lower.ends_with(EXT_ZIP)
+            || lower.ends_with(EXT_APPIMAGE)
+            || lower.ends_with(EXT_DEB)
+            || lower.ends_with(EXT_RPM)
+            || lower.ends_with(EXT_TAR)
         {
             score += SCORE_KNOWN_EXTENSION;
         }
 
-        if lower.ends_with(".sh") {
+        if lower.ends_with(EXT_SH) {
             score += SCORE_SHELL_SCRIPT;
         }
     }

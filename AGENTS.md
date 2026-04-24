@@ -58,7 +58,20 @@ Development guide for gitclaw contributors and agents.
 6. Specs are temporary planning artifacts, delete after merge
 7. Post-mortem lessons go to AGENTS.md, not the spec
 
-## CI Flow
+## Constants
+
+- All named constants live in `src/core/constants.rs` — no magic strings or numbers elsewhere in `src/`
+- Archive extension constants: `EXT_TAR_GZ`, `EXT_TGZ`, `EXT_ZIP`, etc.
+- ar header offsets for `.deb` parsing: private `const` inside `extract.rs` (not in `constants.rs`, not `pub`)
+- Output prefix tags (`[EXEC]`, `[INFO]`, etc.): inline literals in `output/mod.rs` only
+- GitHub API path templates: `const &str` with `{}` placeholders, used with `.replacen("{}", value, 1)` at call sites
+
+## Test Fixtures
+
+- Shared cross-file fixture strings (owner, repo, version, asset names that appear in 2+ test files) go in `tests/fixtures.rs`
+- Each test file that uses them adds `mod fixtures;` and imports what it needs
+- Integer-only or single-file literals (e.g. `Asset.id = 12345`) stay as local `const` at the top of that file
+- `tests/fixtures.rs` contains: `OWNER`, `REPO`, `VERSION`, `ASSET`, `PACKAGE`, `FD_OWNER`, `FD_REPO`, `FD_VERSION`, `BAT_REPO`, `BAT_VERSION`
 
 Verify, Test, Build
 

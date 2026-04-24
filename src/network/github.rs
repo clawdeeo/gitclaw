@@ -11,7 +11,13 @@ use thiserror::Error;
 use tracing::{debug, warn};
 
 use crate::core::config::Config;
-use crate::core::constants::{GITHUB_API_BASE, RELEASE_TAG_LATEST, SEARCH_LIMIT_MAX};
+use crate::core::constants::{
+    COL_SEARCH_ASSETS, COL_SEARCH_NAME, COL_SEARCH_NAME_MAX, COL_SEARCH_NAME_TRUNCATE,
+    COL_SEARCH_TAG, GITHUB_API_BASE, GITHUB_API_PATH_RELEASES, GITHUB_API_PATH_RELEASES_LATEST,
+    GITHUB_API_PATH_RELEASES_PAGED, GITHUB_API_PATH_RELEASES_TAG, GITHUB_URL_PREFIX,
+    GITHUB_URL_PREFIX_SHORT, HTTP_HEADER_LINK, HTTP_LINK_REL_NEXT, PLATFORM_LINUX_AARCH64,
+    PLATFORM_LINUX_X86_64, RELEASE_TAG_LATEST, SEARCH_LIMIT_MAX,
+};
 use crate::core::util::format_bytes;
 use crate::network::platform::{detect_arch, Arch};
 use crate::output;
@@ -69,8 +75,8 @@ pub enum Platform {
 impl std::fmt::Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Platform::LinuxX86_64 => write!(f, "linux-x86_64"),
-            Platform::LinuxAarch64 => write!(f, "linux-aarch64"),
+            Platform::LinuxX86_64 => write!(f, "{}", PLATFORM_LINUX_X86_64),
+            Platform::LinuxAarch64 => write!(f, "{}", PLATFORM_LINUX_AARCH64),
         }
     }
 }
@@ -133,8 +139,11 @@ impl GithubClient {
         };
 
         let url = format!(
-            "{}/repos/{}/{}/releases/tags/{}",
-            GITHUB_API_BASE, owner, repo, tag_normalized
+            "{}{}", GITHUB_API_BASE,
+            GITHUB_API_PATH_RELEASES_TAG
+                .replacen("{}", owner, 1)
+                .replacen("{}", repo, 1)
+                .replacen("{}", &tag_normalized, 1)
         );
         debug!("GET {}", url);
 
@@ -146,8 +155,11 @@ impl GithubClient {
 
         if tag_normalized.starts_with('v') && tag_normalized != tag {
             let url = format!(
-                "{}/repos/{}/{}/releases/tags/{}",
-                GITHUB_API_BASE, owner, repo, tag
+                "{}{}", GITHUB_API_BASE,
+                GITHUB_API_PATH_RELEASES_TAG
+                    .replacen("{}", owner, 1)
+                    .replacen("{}", repo, 1)
+                    .replacen("{}", tag, 1)
             );
             let resp = self.add_auth(self.client.get(&url)).send().await?;
 
@@ -187,8 +199,10 @@ impl GithubClient {
         repo: &str,
     ) -> std::result::Result<Release, GithubError> {
         let url = format!(
-            "{}/repos/{}/{}/releases/latest",
-            GITHUB_API_BASE, owner, repo
+            "{}{}", GITHUB_API_BASE,
+            GITHUB_API_PATH_RELEASES_LATEST
+                .replacen("{}", owner, 1)
+                .replacen("{}", repo, 1)
         );
         let resp = self.add_auth(self.client.get(&url)).send().await?;
 
@@ -214,7 +228,12 @@ impl GithubClient {
         owner: &str,
         repo: &str,
     ) -> std::result::Result<Vec<Release>, GithubError> {
-        let url = format!("{}/repos/{}/{}/releases", GITHUB_API_BASE, owner, repo);
+        let url = format!(
+            "{}{}", GITHUB_API_BASE,
+            GITHUB_API_PATH_RELEASES
+                .replacen("{}", owner, 1)
+                .replacen("{}", repo, 1)
+        );
         debug!("GET {}", url);
 
         let resp = self.add_auth(self.client.get(&url)).send().await?;
@@ -355,8 +374,8 @@ pub fn find_matching_asset(
 
 pub fn parse_package(input: &str) -> Result<(String, String, Option<String>)> {
     let s = input
-        .trim_start_matches("https://github.com/")
-        .trim_start_matches("github.com/");
+        .trim_start_matches(GITHUB_URL_PREFIX)
+        .trim_start_matches(GITHUB_URL_PREFIX_SHORT);
 
     let (repo_part, version) = match s.split_once('@') {
         Some((r, v)) => (r, Some(v.to_string())),
@@ -383,17 +402,20 @@ pub async fn search_releases(
 
     let per_page = limit.min(SEARCH_LIMIT_MAX);
     let url = format!(
-        "{}/repos/{}/{}/releases?per_page={}",
-        GITHUB_API_BASE, owner, repo, per_page
+        "{}{}", GITHUB_API_BASE,
+        GITHUB_API_PATH_RELEASES_PAGED
+            .replacen("{}", &owner, 1)
+            .replacen("{}", &repo, 1)
+            .replacen("{}", &per_page.to_string(), 1)
     );
     let resp = client.add_auth(client.client.get(&url)).send().await?;
     let resp = check_api_response(resp).await?;
 
     let has_next = resp
         .headers()
-        .get("link")
+        .get(HTTP_HEADER_LINK)
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.contains("rel=\"next\""))
+        .map(|s| s.contains(HTTP_LINK_REL_NEXT))
         .unwrap_or(false);
 
     let mut releases: Vec<Release> = resp.json().await?;
@@ -410,16 +432,19 @@ pub async fn search_releases(
     println!(
         "{}",
         format!(
-            "{:<20} {:<42} {:<8} {}",
-            "Tag", "Name", "Assets", "Total Size"
+            "{:<width_tag$} {:<width_name$} {:<width_assets$} {}",
+            "Tag", "Name", "Assets", "Total Size",
+            width_tag = COL_SEARCH_TAG,
+            width_name = COL_SEARCH_NAME,
+            width_assets = COL_SEARCH_ASSETS,
         )
         .bold()
     );
 
     for r in releases.iter().take(limit) {
         let name = r.name.as_deref().unwrap_or("").to_string();
-        let name_display = if name.len() > 40 {
-            format!("{}...", &name[..37])
+        let name_display = if name.len() > COL_SEARCH_NAME_MAX {
+            format!("{}...", &name[..COL_SEARCH_NAME_TRUNCATE])
         } else {
             name
         };
@@ -428,11 +453,14 @@ pub async fn search_releases(
         let total_size: u64 = r.assets.iter().map(|a| a.size).sum();
 
         println!(
-            "{:<20} {:<42} {:<8} {}",
+            "{:<width_tag$} {:<width_name$} {:<width_assets$} {}",
             r.tag_name.green().bold(),
             name_display.dimmed(),
             asset_count.to_string().cyan(),
-            format_bytes(total_size).cyan()
+            format_bytes(total_size).cyan(),
+            width_tag = COL_SEARCH_TAG,
+            width_name = COL_SEARCH_NAME,
+            width_assets = COL_SEARCH_ASSETS,
         );
     }
 

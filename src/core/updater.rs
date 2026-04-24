@@ -8,7 +8,7 @@ use colored::Colorize;
 use crate::core::config::Config;
 use crate::core::constants::{
     APP_NAME, DIR_EXTRACTED, EXEC_PERMISSION_MODE, RELEASE_TAG_LATEST, REPO_NAME, REPO_OWNER,
-    TEMP_DIR_SELF_UPDATE,
+    TEMP_DIR_SELF_UPDATE, UPDATER_BACKUP_EXT,
 };
 use crate::core::extract::{detect_archive_type, extract_archive, ArchiveType};
 use crate::core::util::find_binary;
@@ -125,7 +125,7 @@ pub async fn perform_update(config: &Config) -> Result<()> {
 }
 
 fn replace_binary(new: &std::path::Path, current: &std::path::Path) -> Result<()> {
-    let backup = current.with_extension("backup");
+    let backup = current.with_extension(UPDATER_BACKUP_EXT);
     std::fs::rename(current, &backup)?;
 
     match std::fs::copy(new, current) {
